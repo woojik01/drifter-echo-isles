@@ -1,0 +1,38 @@
+/* Compact expedition HUD; the lower-left remains dedicated to movement. */
+#journeyHud{position:absolute;top:calc(9px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;width:max-content;max-width:calc(100vw - 300px);padding:7px 11px;background:#12221bd9;border:1px solid #486250;border-radius:20px;font-size:12px;color:#eee9d8;line-height:1.5;pointer-events:none;text-align:center}
+#journeyIcon{color:#ddc28b;flex:none;font-size:17px}#journeyText{overflow-wrap:anywhere}
+#toasts{top:calc(63px + env(safe-area-inset-top))}
+#tutMsg{display:none!important}#tutSteps{display:none!important}
+#topleft .vital-heading,#topleft .vital-heading b,#topleft #lvRow{font-size:10px}
+#sysBtns button{min-width:44px;width:44px;min-height:44px;height:44px}
+#titleBox{position:relative}#titleFoot{font-size:11px}
+.action-copy b{font-size:13px}.action-copy small{font-size:12px}
+.expdesc,.rdesc,.pstats{font-size:12px}.pname,.expcard h4{font-size:13px}
+.garden-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.garden-seed{padding:8px;border:1px solid #486250;border-radius:5px;color:#e7d5ab;font-size:12px}
+body.panel-open #journeyHud,body.dialog-open #journeyHud,body.action-open #journeyHud{visibility:hidden}
+#dlgNext{width:100%;min-height:44px;background:transparent;border:0;text-align:right;font:inherit;color:var(--amber2)}
+#dlgNext:focus-visible{outline:2px solid var(--amber2);outline-offset:2px}
+button.prow.rep{width:100%;text-align:left;font:inherit;color:inherit}
+body:not(.playing) #ctrl{display:none!important}
+#saveWarning{z-index:60;font-size:12px;pointer-events:none;bottom:calc(170px + env(safe-area-inset-bottom))}
+@media(max-width:640px){
+ #journeyHud{top:calc(59px + env(safe-area-inset-top));left:calc(93px + env(safe-area-inset-left));right:calc(8px + env(safe-area-inset-right));transform:none;max-width:none;width:auto;border-radius:7px;font-size:12px;text-align:left;padding:8px}
+ #toasts{top:calc(130px + env(safe-area-inset-top));bottom:auto;left:calc(93px + env(safe-area-inset-left));right:8px;transform:none;max-width:none;align-items:stretch}.toast{font-size:12px}
+ #hintBar{bottom:calc(188px + env(safe-area-inset-bottom));font-size:12px;background:#12221bd9}
+ #panel{left:calc(8px + env(safe-area-inset-left));right:calc(8px + env(safe-area-inset-right));top:calc(58px + env(safe-area-inset-top));bottom:calc(8px + env(safe-area-inset-bottom))}
+ #topleft .vital-heading,#topleft .vital-heading b,#topleft #lvRow{font-size:9px}
+}
+@media(max-height:500px) and (orientation:landscape){
+ #journeyHud{top:calc(7px + env(safe-area-inset-top));left:50%;right:auto;transform:translateX(-50%);max-width:calc(100vw - 320px);width:max-content;border-radius:15px;font-size:12px;padding:6px 10px}
+ #toasts{top:calc(58px + env(safe-area-inset-top));bottom:auto;left:50%;right:auto;transform:translateX(-50%);max-width:calc(100vw - 310px)}
+ #hintBar{bottom:12px;font-size:11px}#titleBox{padding:18px;max-height:calc(100dvh - 24px);overflow-y:auto}#logoRow{gap:6px}#logoRow canvas{width:36px;height:36px}#gameTitle{font-size:20px}#subtitle{margin:6px 0 12px}#titleFoot{margin-top:10px}
+}
+/* A short, skippable controls tutorial; no route HUD outside the lesson. */
+#journeyHud{pointer-events:none;max-width:calc(100vw - 330px);border-radius:8px;text-align:left}
+#tutorialSkip{pointer-events:auto;min-height:32px;padding:5px 8px;font-size:11px;background:transparent;box-shadow:none;flex:none}
+#tutorialArrow{position:fixed;transform:translateX(-50%);z-index:25;color:#f0ce91;font-size:30px;font-weight:700;line-height:1;text-shadow:0 2px 4px #000;pointer-events:none}
+body.panel-open #tutorialArrow,body.action-open #tutorialArrow,body.dialog-open #tutorialArrow{display:none!important}
+body.orientation-blocked #rotate{display:flex!important;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:18px;background:#0d1916f5;color:var(--tx);font-size:17px;padding:24px;text-align:center;pointer-events:auto;touch-action:none}
+body.orientation-blocked #rotate svg{transform:rotate(90deg)}
+body.orientation-blocked #ui,body.orientation-blocked #ctrl,body.orientation-blocked #pad,body.orientation-blocked #title,body.orientation-blocked #modal,body.orientation-blocked #actionMenu,body.orientation-blocked #pauseOv,body.orientation-blocked #mapOv{visibility:hidden;pointer-events:none!important}
+@media(max-height:500px) and (orientation:landscape){#journeyHud{top:calc(7px + env(safe-area-inset-top));max-width:calc(100vw - 320px);font-size:11px;padding:5px 8px}#tutorialSkip{min-height:30px;font-size:10px}}

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d120e">
+<title>DRIFTER · Echo Isles</title>
+<meta name="description" content="Sail to sleeping islands, awaken their light, and grow a living camp in a pixel wilderness.">
+
+<style>
+/* DRIFTER UI · one palette, one control system, one spacing scale. */
+:root{
+ --panel:#15201b;--panel2:#1c2b23;--line:#344b3d;--line2:#526b57;
+ --tx:#f1eedf;--dim:#b2bcae;--amber:#d6b475;--amber2:#f0ce91;
+ --red:#df8977;--green:#9dba8d;--surface:rgba(18,29,23,.96);--surface-soft:#1a2820;
+ --shadow:0 8px 28px #060c0759;--radius:8px;--space:8px;
+ --px:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a100c;color:var(--tx);font-family:var(--px);user-select:none;-webkit-user-select:none;touch-action:none}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges}
+button,select{font:inherit;color:var(--tx)}
+button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:9px 14px;background:var(--panel2);border:1px solid var(--line2);border-radius:6px;box-shadow:0 2px 0 #070e0966;font-size:12px;font-weight:600;line-height:1.35;cursor:pointer;touch-action:manipulation;pointer-events:auto;transition:background .12s,border-color .12s,transform .12s}
+button:hover{background:#293c2e;border-color:#809276}
+button:active,button.on{transform:translateY(1px);background:#314836}
+button:focus-visible,[tabindex]:focus-visible,summary:focus-visible,select:focus-visible{outline:2px solid var(--amber2);outline-offset:3px}
+button.acc{background:var(--amber);border-color:var(--amber2);color:#241e12}
+button.acc:hover{background:var(--amber2)}
+button.warn{color:#f2b2a0;background:#30231e;border-color:#78574a}
+button.ghost{background:transparent;border-color:transparent;box-shadow:none;color:var(--dim)}
+button:disabled{opacity:.42;cursor:default;transform:none;box-shadow:none}
+button svg,.ui-icon{width:18px;height:18px;flex:none;display:block}
+[hidden]{display:none!important}
+.panel,#titleBox,#modalBox,#pauseBox,#tutBox{background:var(--surface);border:1px solid var(--line2);border-radius:var(--radius);box-shadow:var(--shadow)}
+#cv{position:fixed;inset:0;display:block;width:100vw;height:100vh}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(ellipse at center,transparent 52%,#070e086b 100%)}
+#dmgflash,#warpfade,#deathfade{position:fixed;inset:0;pointer-events:none;opacity:0}
+#dmgflash{z-index:3;background:#be3c452b;transition:opacity .35s}#warpfade{z-index:41;background:#f0c46844;transition:opacity .45s}#deathfade{z-index:60;background:#060b07;transition:opacity 1.2s}
+#rotate{display:none}
+#pad{position:fixed;inset:0;z-index:4}
+#joyBase,#joyStick{position:fixed;display:none;pointer-events:none;z-index:5;border-radius:50%;border:1px solid #c0cfab88}
+#joyBase{width:104px;height:104px;background:#14241b66}#joyStick{width:40px;height:40px;background:#c1cdb45c}
+#ui{position:fixed;inset:0;z-index:10;pointer-events:none;font-size:12px;line-height:1.55}
+#topleft{position:absolute;top:calc(16px + env(safe-area-inset-top));left:calc(16px + env(safe-area-inset-left));width:150px;padding:10px;display:flex;flex-direction:column;gap:6px}
+#mmWrap{padding:0;border:1px solid var(--line);border-radius:4px;overflow:hidden;cursor:pointer;pointer-events:auto;position:relative}
+#mm{display:block;width:128px;height:128px;background:#0b140e}
+.map-caption{position:absolute;right:5px;bottom:3px;font-size:9px;color:#e8ebd8;text-shadow:0 1px 3px #000}
+.vital-heading{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.04em;color:var(--dim)}.vital-heading b{font-size:10px;color:var(--tx);font-weight:500;font-variant-numeric:tabular-nums}
+.bar{width:100%;height:6px;overflow:hidden;border-radius:2px;background:#080f0a}
+.bar>i,#xpF{display:block;height:100%;transition:width .12s linear}#hpF{background:#d18572}#stF{background:#c7b677}
+.bar.low>i{animation:blinkbar .65s steps(2) infinite}@keyframes blinkbar{50%{opacity:.5}}
+#lvRow{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:2px}#lvTxt{color:var(--tx)}
+#xpBar{height:3px;background:#08100b;border-radius:2px;overflow:hidden}#xpF{background:var(--green)}
+#resRow,#slotRow,#statSum{display:none}
+#sysBtns{position:absolute;right:calc(16px + env(safe-area-inset-right));top:calc(16px + env(safe-area-inset-top));display:flex;gap:6px;padding:4px;border:1px solid var(--line);background:var(--surface);border-radius:8px;box-shadow:var(--shadow)}
+#sysBtns button{padding:0;width:40px;height:40px;min-height:40px;border-color:transparent;box-shadow:none;background:transparent;color:var(--tx)}
+#sysBtns button:hover,#sysBtns button[aria-expanded=true]{background:#2c3e2e;border-color:var(--line2)}
+#voyage{position:absolute;top:calc(82px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right));width:276px;padding:12px}
+.eyebrow{font-size:10px;font-weight:700;color:var(--dim);letter-spacing:.14em;line-height:1.4;text-transform:uppercase}
+#voyageRegion{display:block;color:var(--tx)!important;font-size:13px;font-weight:600;line-height:1.5;margin-top:5px;word-break:keep-all}
+#voyageNext{display:block;color:var(--dim);font-size:11px;margin-top:3px}#voyageTrack{height:3px;border-radius:2px;background:#354839;overflow:hidden;margin:8px 0}
+#voyageFill{height:100%;max-width:100%;background:var(--green);transition:width .25s linear}
+#voyageGoal{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:32px;line-height:1.5;color:var(--dim);font-size:11px}
+#voyageActions{display:flex;gap:6px;margin-top:10px}#voyageActions button{flex:1;min-width:0;min-height:40px;padding:8px 5px;font-size:11px}
+#panel{position:absolute;top:calc(78px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom));width:380px;max-width:calc(100vw - 32px);display:none;flex-direction:column;pointer-events:auto;overflow:hidden;z-index:21}
+#panel.show{display:flex}#panelTabs{display:flex;gap:4px;padding:10px;border-bottom:1px solid var(--line);align-items:center;background:#111d16}
+.ptab{flex:1;background:transparent;border-color:transparent;box-shadow:none;color:var(--dim)}.ptab.on{color:var(--amber2);background:#2d3324;border-color:#766542}
+#panelClose{width:40px;padding:0;font-size:22px;font-weight:400;background:transparent;border-color:transparent;box-shadow:none;color:var(--dim)}
+#panelBody{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:#526b57 #142019;scrollbar-gutter:stable}
+.expcard,.prow,.rrow{background:var(--surface-soft);border:1px solid var(--line);border-radius:6px}
+.expcard{padding:12px;margin:0 0 12px;line-height:1.65}.expcard h4{color:var(--tx);font-size:12px;font-weight:600;margin:0 0 6px}.expcard button{margin-top:8px;max-width:100%;font-size:11px}
+.expdesc,.rdesc{font-size:11px;color:var(--dim);line-height:1.6}.expbadge{display:inline-block;color:var(--dim);font-size:10px;letter-spacing:.02em}
+.exprow{display:flex;align-items:center;gap:8px;margin-top:8px}.exprow select{width:100%;min-height:40px;border:1px solid var(--line2);border-radius:5px;padding:8px;background:#101b14;font-size:12px;touch-action:manipulation}
+.sectbtn{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:40px;padding:8px 0;margin:8px 0;color:var(--dim);font-size:11px;font-weight:600;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none;text-align:left;letter-spacing:.02em}
+button.sectbtn:hover{background:transparent;border-color:var(--line2);color:var(--tx)}.sectbtn:first-child{margin-top:0}.sectbtn span:last-child{color:var(--dim)}
+.prow,.rrow{display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:8px}
+.prow.rep{cursor:pointer;border-style:dashed;border-color:#8f7a51}.prow.sel{background:#333222;border-color:var(--amber)}
+.pico{width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:4px;background:#0f1912;border:1px solid var(--line)}
+.pico canvas{width:26px;height:26px}.pmain{flex:1;min-width:0}.pname{font-size:12px;color:var(--tx);font-weight:600;white-space:normal;overflow-wrap:anywhere;line-height:1.5}.pname .psub{font-size:10px;font-weight:400;color:var(--dim)}
+.pstats{font-size:11px;color:var(--dim);line-height:1.65;word-break:keep-all;margin-top:3px}.pstats .base{color:#d4dccb}.pstats .base b{font-weight:500}.pstats .none{color:#9aa793}
+.pbtns{display:flex;flex-direction:column;gap:6px;flex:none}.pbtns button{min-height:36px;padding:7px 10px;font-size:11px}
+.pempty{padding:12px 2px;color:var(--dim);font-size:11px}.repbar,.compare{padding:10px;background:#2e3020;border:1px solid #7b6b43;border-radius:6px;color:var(--amber2);font-size:11px;margin-bottom:8px;line-height:1.6}
+.repbar{display:flex;align-items:center;justify-content:space-between;gap:8px}.repbar>span{min-width:0;overflow-wrap:anywhere}.repbar button{flex:none}.compare{margin:0 0 12px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 6px;background:#111d15;border:1px solid var(--line);border-radius:4px;color:#d4ddcc;margin:4px 4px 0 0;font-variant-numeric:tabular-nums}.chip canvas{width:14px;height:14px}.chip.no{color:#eda58e;border-color:#715244}
+.baseSel{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.bsel{width:100%;min-height:42px;padding:5px;background:#111d16;border-color:var(--line)}.bsel canvas{width:26px;height:26px}.bsel.on{background:#343322;border-color:var(--amber)}
+.resource-ledger{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:12px}.resource-tile{display:grid;grid-template-columns:18px 1fr;gap:3px 5px;align-items:center;background:#19281f;border:1px solid var(--line);border-radius:5px;padding:7px;font-size:10px;color:var(--dim);min-width:0}.resource-tile canvas{width:16px;height:16px}.resource-tile b{grid-column:2;color:var(--tx);font-weight:600;font-size:12px;font-variant-numeric:tabular-nums}.resource-tile.empty{opacity:.55}
+.quest-list{border:1px solid var(--line);border-radius:6px;margin:8px 0 12px;background:#132017}.quest-list summary{cursor:pointer;min-height:42px;padding:11px 12px;font-size:11px;color:var(--dim);font-weight:600;touch-action:manipulation}.quest-list .prow{margin:0 8px 8px;background:var(--surface-soft)}
+#quickbar{position:absolute;left:calc(16px + env(safe-area-inset-left));bottom:calc(16px + env(safe-area-inset-bottom));display:flex;gap:6px;pointer-events:auto}
+.qbtn{width:44px;height:44px;min-height:44px;padding:6px;position:relative;background:var(--surface);border-color:var(--line2);border-radius:6px}.qbtn canvas{width:22px;height:22px}.qbtn b{position:absolute;bottom:2px;right:4px;font-weight:500;font-size:10px;color:var(--tx);line-height:1;background:#15201bcc;padding:2px}.qbtn.off{opacity:.5}
+#pickupHint,#hintBar{position:absolute;left:50%;transform:translateX(-50%);display:none;padding:8px 12px;max-width:calc(100vw - 32px);color:var(--tx);font-size:12px;text-align:center;pointer-events:none;line-height:1.5}
+#pickupHint{bottom:calc(88px + env(safe-area-inset-bottom))}#hintBar{bottom:calc(138px + env(safe-area-inset-bottom));color:var(--dim);transition:opacity 1s}
+#toasts{position:absolute;top:calc(20px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);max-width:calc(100vw - 360px);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{padding:9px 14px;color:var(--amber2);background:var(--surface);border:1px solid var(--line2);border-radius:6px;box-shadow:var(--shadow);font-size:12px;text-align:center;line-height:1.5;animation:toastin .18s ease-out}.toast.small{color:var(--dim)}@keyframes toastin{from{transform:translateY(-6px);opacity:0}}
+#dlg{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom));display:none;width:460px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 130px);padding:18px;overflow-y:auto;overscroll-behavior:contain;pointer-events:auto;touch-action:pan-y;z-index:22}
+#dlg.show{display:block}.dlgName{font-size:12px;font-weight:600;color:var(--amber2);margin-bottom:8px}.dlgText{min-height:44px;color:var(--tx);font-size:13px;line-height:1.8}.dlgShop{margin-top:12px;max-height:45dvh;overflow-y:auto;touch-action:pan-y}.dlgNext{font-size:12px;color:var(--amber2);margin-top:12px;cursor:pointer;min-height:40px;padding:10px 0}.dlgBtns{display:flex;gap:8px;margin-top:10px}.dlgShop>.expcard{border-style:dashed}.dlgShop .sectbtn{margin:0 0 8px}
+#ctrl{position:fixed;inset:0;z-index:6;pointer-events:none;display:none}body.coarse #ctrl{display:block}
+.cbtn{position:fixed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid var(--line2);border-radius:50%;background:#18281fe6;color:var(--tx);box-shadow:0 3px 0 #060e0980;pointer-events:auto;font-size:11px;font-weight:500;padding:0;min-height:0;backdrop-filter:blur(4px)}
+.cbtn svg{width:20px;height:20px}.cbtn.on{background:#3a4a30;border-color:var(--amber)}#btnAtk{right:calc(98px + env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom));width:68px;height:68px;border-color:#b49a66;color:var(--amber2)}#btnUse{right:calc(16px + env(safe-area-inset-right));bottom:calc(108px + env(safe-area-inset-bottom));width:56px;height:56px}#btnRun{right:calc(16px + env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom));width:56px;height:56px}#btnUse.hot{border-color:var(--amber);background:#3a3d26}
+#mapOv,#pauseOv,#modal,#tutOv{position:fixed;inset:0;display:none;background:#07110bd9}#mapOv{z-index:45;flex-direction:column}#pauseOv{z-index:48}#modal{z-index:50}#tutOv{z-index:55}#mapOv.show{display:flex}#pauseOv.show,#modal.show,#tutOv.show{display:flex;align-items:center;justify-content:center}
+#mapTop{display:flex;align-items:center;gap:12px;padding:calc(16px + env(safe-area-inset-top)) 16px 12px;background:#111d15;border-bottom:1px solid var(--line)}#mapTitle{flex:1;color:var(--tx);font-size:15px;font-weight:600}#mapCampDistance{flex:none;white-space:nowrap;padding:5px 8px;border:1px solid #786a44;border-radius:5px;color:#f0c468;background:#17231b;font-size:11px}#mapZoom{display:flex;align-items:center;gap:6px}#mapZoomLv{min-width:34px;text-align:center;font-size:11px;color:var(--dim)}#mapClose{min-width:40px;padding:0;font-size:22px;font-weight:400}
+#bigmap{flex:1;min-height:0;width:100%;touch-action:none;cursor:grab;background:#0a140d}#mapLegend{display:flex;flex-wrap:wrap;gap:8px 14px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));color:var(--dim);font-size:11px;background:#111d15;border-top:1px solid var(--line)}#mapLegend .li{display:flex;align-items:center;gap:5px}#mapLegend i{width:7px;height:7px;border-radius:1px}#mapLegend .st{color:var(--tx);font-size:10px}
+#pauseBox,#modalBox,#tutBox{width:460px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 40px);padding:24px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;pointer-events:auto}
+#pauseBox h2,#modalBox h2,#tutBox h2{font-size:19px;color:var(--tx);font-weight:600;margin-bottom:12px;letter-spacing:0}#pauseBox{text-align:center;width:360px}#pauseStats{font-size:12px;line-height:1.8;color:var(--tx);margin-bottom:8px}#pauseStats .sub,#pauseHint{font-size:11px;color:var(--dim)}#pauseHint{margin-bottom:18px}.row,.tutRow{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px}#pauseBox .row{justify-content:center}
+#modalBox{width:520px}#modalBox h3{font-size:12px;font-weight:600;color:var(--tx);margin:20px 0 8px}#modalBox p,#modalBox li{font-size:12px;color:var(--dim);line-height:1.8}#modalBox p{margin-bottom:8px}#modalBox ul{list-style:none}#modalBox li{padding:6px 0;border-bottom:1px solid #344b3d77}#modalBox li b{font-weight:500;color:var(--tx);display:inline-block;min-width:64px}#modalBox .expcard{margin-top:16px}
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:16px 0}.settings-grid button{justify-content:flex-start;min-height:44px;padding:10px 12px;font-size:12px}.settings-grid #btnLang{gap:8px}.settings-grid #btnLang::before{content:'A';font-family:serif;font-size:17px;width:18px;text-align:center;color:var(--amber2)}.settings-caption{display:flex;align-items:center;justify-content:space-between;gap:12px}.settings-caption .eyebrow{font-size:10px}
+#tutSpeaker{color:var(--amber2);font-size:11px;font-weight:600;margin-bottom:8px}#tutBox p{font-size:13px;line-height:1.8;color:var(--dim);margin:10px 0}#tutBox .tutHintLine{color:var(--dim);border-top:1px solid var(--line);padding-top:12px;margin-top:16px;font-size:11px}
+#tutSteps{position:absolute;top:calc(16px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;pointer-events:none}#tutSteps.show{display:flex}#tutStepsTitle{font-size:10px;color:var(--dim)}#tutStepsList{display:flex;gap:5px;padding:7px 9px;background:var(--surface);border:1px solid var(--line);border-radius:6px}.tstep{width:7px;height:7px;background:#334536;border:1px solid var(--line2);border-radius:1px}.tstep.done{background:var(--green);border-color:var(--green)}.tstep.cur{background:var(--amber);border-color:var(--amber2)}
+#tutMsg{position:absolute;top:34%;left:50%;transform:translate(-50%,-50%);max-width:min(420px,88vw);padding:12px 16px;display:none;pointer-events:none;color:var(--tx);font-size:13px;text-align:center;background:var(--surface);border:1px solid #887247;border-radius:6px;line-height:1.75;box-shadow:var(--shadow)}#tutMsg.show{display:block}
+#title{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;flex-direction:column;background:linear-gradient(#0b140b66,#0a120bc9);transition:opacity .6s}#title.hide{opacity:0;pointer-events:none}#titleBox{padding:32px;width:460px;max-width:calc(100vw - 32px);text-align:center;background:#121f18ed}#logoRow{display:flex;flex-direction:column;align-items:center;gap:16px;justify-content:center}#logoRow canvas{width:64px;height:64px}#gameTitle{font-size:25px;font-weight:600;line-height:1.6;color:var(--tx);letter-spacing:.02em}#subtitle{color:var(--dim);font-size:12px;line-height:1.6;margin:10px 0 24px}#titleBtns{display:flex;flex-direction:column;gap:8px}#titleBtns>button{width:100%;min-height:44px;font-size:13px}#confirmNew{display:none;gap:8px;align-items:center;flex-wrap:wrap;padding:12px;border:1px solid #78574a;border-radius:6px;color:#f2b2a0;font-size:12px;text-align:left}#confirmNew.show{display:flex}#confirmNew>span{width:100%}#confirmNew button{flex:1;min-width:0}#titleFoot{font-size:10px;line-height:1.8;color:var(--dim);margin-top:20px}#titleLangs{position:fixed;right:calc(16px + env(safe-area-inset-right));top:calc(16px + env(safe-area-inset-top))}
+#saveWarning{display:none;position:absolute;bottom:100px;left:50%;transform:translateX(-50%);background:#33251d;border:1px solid #78574a;border-radius:6px;color:#f2b2a0;max-width:calc(100vw - 32px);width:300px;padding:12px;text-align:center}
+body.panel-open #voyage{visibility:hidden}body.panel-open #quickbar{display:none}body.panel-open #ctrl,body.dialog-open #ctrl{opacity:0;pointer-events:none}body.panel-open #ctrl .cbtn,body.dialog-open #ctrl .cbtn{pointer-events:none}body.dialog-open #voyage{visibility:hidden}
+@media(pointer:coarse){button{min-height:44px}#panelBody{padding:12px}.pbtns button{min-height:40px}}
+@media(max-width:640px){
+ #topleft{top:calc(12px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));width:100px;padding:8px;gap:5px}#mm{width:82px;height:82px}.vital-heading,.vital-heading b{font-size:9px}#lvRow{font-size:9px}.map-caption{font-size:8px}#sysBtns{right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));gap:2px;padding:3px}#sysBtns button{width:40px;height:40px}
+ #voyage{top:calc(72px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));width:min(218px,calc(100vw - 128px));padding:10px}#voyageRegion{font-size:11px;margin-top:4px}#voyageNext,#voyageGoal{font-size:10px}#voyageGoal{min-height:30px}#voyageActions{gap:5px;margin-top:8px}#voyageActions button{min-height:44px;font-size:10px;padding:6px 2px;gap:3px}#voyage .eyebrow{font-size:9px}
+ #panel{top:calc(70px + env(safe-area-inset-top));right:12px;left:12px;width:auto;max-width:none;bottom:calc(12px + env(safe-area-inset-bottom));border-radius:10px}#panelTabs{padding:8px}#panelBody{padding:10px}.prow,.rrow{padding:10px 8px;gap:8px}.pico{width:30px;height:30px}.pico canvas{width:22px;height:22px}.pname{font-size:12px}.pstats{font-size:11px}.pbtns button{padding:7px 8px;min-height:40px}.resource-ledger{gap:5px}.resource-tile{padding:6px;grid-template-columns:16px 1fr;column-gap:3px}.resource-tile span{font-size:9px}
+ #toasts{top:auto;bottom:calc(280px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px);width:max-content}.toast{font-size:11px;padding:8px 12px}#tutSteps{top:auto;bottom:calc(236px + env(safe-area-inset-bottom));max-width:100%}#tutMsg{top:auto;bottom:calc(286px + env(safe-area-inset-bottom));transform:translateX(-50%);font-size:12px}
+ #titleBox{padding:24px}#gameTitle{font-size:22px}#modalBox,#tutBox,#pauseBox{padding:20px;max-width:calc(100vw - 24px)}#modalBox .row button{flex:1}#mapTop{gap:6px;padding-left:12px;padding-right:12px}#mapTop button{min-width:40px;padding:7px 10px}#mapTitle{font-size:13px}#mapLegend{gap:7px 12px;font-size:10px}
+ #dlg{bottom:calc(12px + env(safe-area-inset-bottom));max-height:68dvh;width:calc(100vw - 24px);max-width:none;padding:16px}#hintBar{font-size:11px;bottom:calc(236px + env(safe-area-inset-bottom));width:calc(100vw - 32px)}#pickupHint{bottom:calc(222px + env(safe-area-inset-bottom));font-size:11px;max-width:calc(100vw - 48px)}
+ body.coarse #quickbar{left:calc(12px + env(safe-area-inset-left));right:auto;bottom:calc(166px + env(safe-area-inset-bottom));gap:5px}body.coarse .qbtn{width:40px;height:44px;padding:5px}body.coarse .qbtn canvas{width:20px;height:20px}body.panel-open #topleft{visibility:hidden}
+}
+@media(max-height:500px) and (orientation:landscape){
+ #topleft{top:calc(10px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));width:100px;padding:8px;gap:3px}#mm{width:82px;height:82px}.vital-heading,.vital-heading b{font-size:9px}#lvRow{font-size:9px}#sysBtns{top:calc(10px + env(safe-area-inset-top));right:12px}#voyage{top:calc(72px + env(safe-area-inset-top));right:12px;width:206px;padding:10px}#voyageGoal{display:none}#voyageRegion{font-size:11px}#voyageNext{font-size:10px}#voyageActions{margin-top:8px}#voyageActions button{min-height:40px;font-size:10px}#panel{top:12px;bottom:12px;right:12px;width:min(380px,55vw)}#tutMsg{top:44%;max-width:320px;font-size:12px}#toasts{top:12px;bottom:auto;max-width:calc(100vw - 460px)}#hintBar{bottom:80px;max-width:calc(100vw - 320px);font-size:10px}#pickupHint{bottom:80px;font-size:11px;max-width:calc(100vw - 360px)}body.coarse #quickbar{left:12px;right:auto;bottom:12px}body.coarse .qbtn{width:40px;height:40px;min-height:40px}#btnUse{bottom:100px}#btnAtk,#btnRun{bottom:20px}#dlg{bottom:12px;max-height:calc(100dvh - 24px);width:440px}#modalBox,#pauseBox,#tutBox{max-height:calc(100dvh - 24px);padding:20px}.dlgShop{max-height:40dvh}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+#mmWrap{box-shadow:none}.guide-block{border:1px solid var(--line);border-radius:6px;margin:8px 0;background:#132017}.guide-block summary{padding:12px;min-height:44px;font-size:12px;font-weight:500;color:var(--dim);cursor:pointer;touch-action:manipulation}.guide-block>ul,.guide-block>p{padding:0 12px 12px}.guide-block .expcard{margin:0 10px 10px}.guide-block[open]>summary{color:var(--tx)}
+/* Keep the playfield clear; all contextual utilities live behind Interact. */
+#title.hide{display:none!important;visibility:hidden!important}
+#title.hide *{pointer-events:none!important}
+body:not(.playing) #ui{visibility:hidden}
+#btnLang,#btnLang2,#quickbar,#voyage{display:none!important}
+#topleft,body.coarse #topleft{top:calc(3px + env(safe-area-inset-top));left:calc(3px + env(safe-area-inset-left));width:110px;padding:6px;gap:4px;background:rgba(18,29,23,.90);border-radius:5px;box-shadow:0 3px 12px #0004}
+#mm,body.coarse #mm{width:96px;height:96px}
+#mmWrap{border-radius:3px}.map-caption{display:none}
+#topleft .bar{height:4px}#topleft .vital-heading,#topleft .vital-heading b{font-size:9px;line-height:1.2}#topleft #lvRow{font-size:9px;margin-top:0}#topleft #xpBar{height:2px}
+#sysBtns{top:calc(3px + env(safe-area-inset-top));right:calc(3px + env(safe-area-inset-right));gap:3px;padding:3px;border-radius:6px;background:rgba(18,29,23,.9)}
+#sysBtns button{width:38px;height:38px;min-height:38px}
+#pad{inset:45% 50% 0 0}
+#pickupHint{bottom:calc(190px + env(safe-area-inset-bottom));max-width:calc(100vw - 40px);width:max-content}
+#btnUse{position:fixed}.action-count{position:absolute;top:-3px;right:-3px;display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid #b49a66;background:#d6b475;color:#241e12;font-size:10px;font-style:normal;font-weight:700}
+#actionMenu{position:fixed;inset:0;z-index:53;display:none;align-items:center;justify-content:center;background:#07110ba8;padding:16px;touch-action:none}
+#actionMenu.show{display:flex}
+#actionMenuBox{width:420px;max-width:100%;max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden;background:var(--surface);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadow);touch-action:pan-y}
+.action-menu-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px;border-bottom:1px solid var(--line)}
+#actionMenuTitle{font-size:16px;font-weight:600;color:var(--tx);line-height:1.5}#actionMenuHint{font-size:11px;color:var(--dim);margin-top:4px;line-height:1.6}
+#actionMenuClose{width:40px;height:40px;min-height:40px;flex:none;font-size:22px;font-weight:400;padding:0;background:transparent;border-color:transparent;box-shadow:none}
+#actionMenuList{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:10px;touch-action:pan-y}
+#actionMenuList button{display:flex;justify-content:flex-start;align-items:center;gap:10px;width:100%;min-height:58px;padding:10px 12px;margin-bottom:6px;text-align:left;box-shadow:none;border-color:var(--line);background:var(--surface-soft)}
+#actionMenuList button:last-child{margin-bottom:0}#actionMenuList button:hover,#actionMenuList button:focus-visible{background:#2b3c2c;border-color:var(--amber)}
+.action-key{width:22px;flex:none;color:var(--amber2);font-size:12px;text-align:center}.action-copy{flex:1;min-width:0}.action-copy b{display:block;white-space:normal;font-weight:600;font-size:12px;line-height:1.6}.action-copy small{display:block;white-space:normal;font-weight:400;font-size:10px;color:var(--dim);line-height:1.6;margin-top:2px}.action-arrow{color:var(--dim);font-size:20px;flex:none;font-weight:400}
+.language-field{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:8px 12px;background:var(--panel2);border:1px solid var(--line2);border-radius:6px;font-size:12px}
+#languageSelect{min-height:36px;background:#101b14;border:1px solid var(--line2);border-radius:4px;padding:6px 12px;font-size:12px;color:var(--tx);touch-action:manipulation}
+body.action-open #ctrl,body.action-open #pickupHint{visibility:hidden}body.action-open #ctrl .cbtn,body.action-open #pad{pointer-events:none}
+body.coarse .action-key{display:none}
+@media(pointer:coarse),(max-width:640px){
+ #topleft,body.coarse #topleft{width:84px;padding:5px;gap:3px}#mm,body.coarse #mm{width:72px;height:72px}#topleft .bar{height:4px}#topleft .vital-heading,#topleft .vital-heading b{font-size:8px}#topleft #lvRow{font-size:8px}
+ #sysBtns{top:calc(3px + env(safe-area-inset-top));right:calc(3px + env(safe-area-inset-right));padding:3px;gap:2px}
+ #tutSteps{top:calc(154px + env(safe-area-inset-top));bottom:auto;left:46px}#tutStepsTitle{display:none}#tutMsg{bottom:calc(202px + env(safe-area-inset-bottom));top:auto;transform:translateX(-50%);font-size:12px}
+ #toasts{top:auto;bottom:calc(198px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px)}#hintBar{bottom:calc(240px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px)}
+}
+@media(max-width:640px) and (orientation:portrait){
+ #actionMenu{align-items:flex-end;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}#actionMenuBox{max-height:72dvh;border-radius:12px}#actionMenuList button{min-height:60px}.action-menu-heading{padding:14px}
+ #pickupHint{bottom:calc(190px + env(safe-area-inset-bottom))}
+}
+@media(max-height:500px) and (orientation:landscape){
+ #topleft,body.coarse #topleft{width:78px;padding:5px;gap:3px}#mm,body.coarse #mm{width:66px;height:66px}
+ #actionMenu{padding:12px}#actionMenuBox{max-height:calc(100dvh - 24px);width:420px}.action-menu-heading{padding:12px 16px}#actionMenuHint{display:none}#actionMenuTitle{font-size:14px}#actionMenuList button{min-height:54px;padding:8px 12px}
+ #toasts{top:calc(6px + env(safe-area-inset-top));bottom:auto;max-width:calc(100vw - 300px)}#hintBar{bottom:24px;max-width:calc(100vw - 380px)}#pickupHint{bottom:24px;max-width:calc(100vw - 350px)}
+ #tutMsg{top:34%;bottom:auto;transform:translate(-50%,-50%);max-width:320px}#tutSteps{top:calc(144px + env(safe-area-inset-top));bottom:auto;left:44px}
+}
+
+
+/* Party controls remain reachable throughout an expedition. */
+#sysBtns #btnParty{width:auto;min-width:68px;padding:0 10px;color:var(--amber2);font-size:12px}
+body:not(.playing) #btnParty{display:none}
+body #coopStatus{top:auto;bottom:calc(78px + env(safe-area-inset-bottom));left:calc(16px + env(safe-area-inset-left));max-width:min(380px,calc(100vw - 32px))}
+#coopBadge{flex:1;min-width:0}#coopCard input:focus-visible{outline:2px solid var(--amber2);outline-offset:2px}
+body.party-open #ctrl,body.party-open #quickbar{visibility:hidden;pointer-events:none}
+@media(pointer:coarse),(max-width:640px){body #coopStatus{top:calc(50px + env(safe-area-inset-top));right:calc(4px + env(safe-area-inset-right));bottom:auto;left:auto;width:max-content;max-width:calc(100vw - 132px);padding:5px 6px;gap:5px}body #coopStatus button{min-height:28px;padding:3px 6px}#coopBadge{max-width:calc(100vw - 270px)}}
+</style>
+<style>
+#btnCoop.acc{background:#28392d;border-color:#819471;color:#ead6aa}
+#coopPanel{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:16px;background:#07110bd9;touch-action:pan-y;pointer-events:auto}
+#coopPanel.show{display:flex}#coopCard{width:460px;max-width:100%;max-height:calc(100dvh - 32px);overflow:auto;padding:22px;background:var(--surface);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadow)}
+#coopCard h2{font-size:18px;margin-bottom:6px}#coopCard p{font-size:11px;color:var(--dim);line-height:1.65;margin:5px 0 12px}#coopCard label{display:block;color:var(--dim);font-size:11px;margin:9px 0 5px}#coopCard input{width:100%;min-height:42px;padding:9px 10px;color:var(--tx);background:#101b14;border:1px solid var(--line2);border-radius:5px;font:inherit;user-select:text}
+#coopActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}#coopLobbyActions{display:flex;flex-wrap:wrap;gap:8px}#coopLobbyActions button{flex:1}#coopRoomCode{font-size:24px;letter-spacing:.18em;color:var(--amber2);font-variant-numeric:tabular-nums;margin:12px 0}#coopStatusText{min-height:32px;color:var(--green)}#coopStatusText[aria-busy="true"]::before{content:"";display:inline-block;width:10px;height:10px;margin:0 8px 0 2px;vertical-align:-1px;border:2px solid #677763;border-top-color:var(--amber2);border-radius:50%;animation:coop-status-spin .8s linear infinite}@keyframes coop-status-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){#coopStatusText[aria-busy="true"]::before{animation:none;border-top-color:var(--green)}}
+#coopStatus{position:fixed;z-index:19;left:122px;top:6px;display:none;padding:7px 10px;max-width:min(52vw,330px);color:var(--tx);background:var(--surface);border:1px solid var(--line2);border-radius:5px;box-shadow:var(--shadow);font-size:10px;line-height:1.4;pointer-events:auto}#coopStatus.show{display:flex;align-items:center;gap:9px}#coopStatus span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#coopStatus button{min-height:30px;padding:4px 8px;font-size:10px;flex:none}
+#coopPrivacy{font-size:10px!important;color:var(--dim);margin-top:9px!important;padding-top:9px;border-top:1px solid var(--line)}
+@media(max-width:600px){#coopCard{padding:18px}#coopStatus{left:114px;max-width:calc(100vw - 122px)}}
+</style>
+<style>
+/* Compact expedition HUD; the lower-left remains dedicated to movement. */
+#journeyHud{position:absolute;top:calc(9px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;width:max-content;max-width:calc(100vw - 300px);padding:7px 11px;background:#12221bd9;border:1px solid #486250;border-radius:20px;font-size:12px;color:#eee9d8;line-height:1.5;pointer-events:none;text-align:center}
+#survivalHud{display:block;width:100%;padding:2px 3px;background:#12221bd9;border:1px solid #735b3d;border-radius:4px;font-size:10px;color:#f2dfbd;line-height:1.35;pointer-events:none;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#survivalHud[data-phase="night"]{border-color:#80638f;color:#ead5ff}
+#journeyIcon{color:#ddc28b;flex:none;font-size:17px}#journeyText{overflow-wrap:anywhere}
+#toasts{top:calc(63px + env(safe-area-inset-top))}
+#tutMsg{display:none!important}#tutSteps{display:none!important}
+#topleft .vital-heading,#topleft .vital-heading b,#topleft #lvRow{font-size:10px}
+#sysBtns button{min-width:44px;width:44px;min-height:44px;height:44px}
+#titleBox{position:relative}#titleFoot{font-size:11px}
+.action-copy b{font-size:13px}.action-copy small{font-size:12px}
+.expdesc,.rdesc,.pstats{font-size:12px}.pname,.expcard h4{font-size:13px}
+.garden-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.garden-seed{padding:8px;border:1px solid #486250;border-radius:5px;color:#e7d5ab;font-size:12px}
+body.panel-open #journeyHud,body.dialog-open #journeyHud,body.action-open #journeyHud{visibility:hidden}
+#dlgNext{width:100%;min-height:44px;background:transparent;border:0;text-align:right;font:inherit;color:var(--amber2)}
+#dlgNext:focus-visible{outline:2px solid var(--amber2);outline-offset:2px}
+button.prow.rep{width:100%;text-align:left;font:inherit;color:inherit}
+body:not(.playing) #ctrl{display:none!important}
+#saveWarning{z-index:60;font-size:12px;pointer-events:none;bottom:calc(170px + env(safe-area-inset-bottom))}
+@media(max-width:640px){
+ #journeyHud{top:calc(59px + env(safe-area-inset-top));left:calc(93px + env(safe-area-inset-left));right:calc(8px + env(safe-area-inset-right));transform:none;max-width:none;width:auto;border-radius:7px;font-size:12px;text-align:left;padding:8px}
+ #survivalHud{font-size:9px;padding:2px}
+ #toasts{top:calc(130px + env(safe-area-inset-top));bottom:auto;left:calc(93px + env(safe-area-inset-left));right:8px;transform:none;max-width:none;align-items:stretch}.toast{font-size:12px}
+ #hintBar{bottom:calc(188px + env(safe-area-inset-bottom));font-size:12px;background:#12221bd9}
+ #panel{left:calc(8px + env(safe-area-inset-left));right:calc(8px + env(safe-area-inset-right));top:calc(58px + env(safe-area-inset-top));bottom:calc(8px + env(safe-area-inset-bottom))}
+ #topleft .vital-heading,#topleft .vital-heading b,#topleft #lvRow{font-size:9px}
+}
+@media(max-height:500px) and (orientation:landscape){
+ #journeyHud{top:calc(7px + env(safe-area-inset-top));left:50%;right:auto;transform:translateX(-50%);max-width:calc(100vw - 320px);width:max-content;border-radius:15px;font-size:12px;padding:6px 10px}
+ #toasts{top:calc(58px + env(safe-area-inset-top));bottom:auto;left:50%;right:auto;transform:translateX(-50%);max-width:calc(100vw - 310px)}
+ #hintBar{bottom:12px;font-size:11px}#titleBox{padding:18px;max-height:calc(100dvh - 24px);overflow-y:auto}#logoRow{gap:6px}#logoRow canvas{width:36px;height:36px}#gameTitle{font-size:20px}#subtitle{margin:6px 0 12px}#titleFoot{margin-top:10px}
+}
+/* A short, skippable controls tutorial; no route HUD outside the lesson. */
+#journeyHud{pointer-events:none;max-width:calc(100vw - 330px);border-radius:8px;text-align:left}
+#tutorialSkip{pointer-events:auto;min-height:32px;padding:5px 8px;font-size:11px;background:transparent;box-shadow:none;flex:none}
+#tutorialArrow{position:fixed;transform:translateX(-50%);z-index:25;color:#f0ce91;font-size:30px;font-weight:700;line-height:1;text-shadow:0 2px 4px #000;pointer-events:none}
+body.panel-open #tutorialArrow,body.action-open #tutorialArrow,body.dialog-open #tutorialArrow{display:none!important}
+body.orientation-blocked #rotate{display:flex!important;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:18px;background:#0d1916f5;color:var(--tx);font-size:17px;padding:24px;text-align:center;pointer-events:auto;touch-action:none}
+body.orientation-blocked #rotate svg{transform:rotate(90deg)}
+body.orientation-blocked #ui,body.orientation-blocked #ctrl,body.orientation-blocked #pad,body.orientation-blocked #title,body.orientation-blocked #modal,body.orientation-blocked #actionMenu,body.orientation-blocked #pauseOv,body.orientation-blocked #mapOv{visibility:hidden;pointer-events:none!important}
+@media(max-height:500px) and (orientation:landscape){#journeyHud{top:calc(7px + env(safe-area-inset-top));max-width:calc(100vw - 320px);font-size:11px;padding:5px 8px}#tutorialSkip{min-height:30px;font-size:10px}}
+
+</style>
+<style>
+/* Readable camp projects and equipment decisions at small iframe sizes. */
+#campProject{position:absolute;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);max-width:calc(100vw - 340px);display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid #786a44;border-radius:8px;background:#17281eeb;color:#eee5cd;font-size:12px;line-height:1.5;pointer-events:auto}
+#campProject[hidden],#resourceReceipt[hidden]{display:none}#campProject span{min-width:0}#campProject #campProjectText{flex:1}#campProject #campCompass{flex:none;color:#f0c468;font-size:19px;line-height:1;text-shadow:0 0 8px #f0c46880}#campProject button{min-height:36px;flex:none;padding:6px 8px;font-size:12px}#campProjectLater{background:transparent;border-color:transparent;color:var(--dim)}
+#resourceReceipt{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);max-width:calc(100vw - 350px);padding:7px 12px;background:#12251ee6;border:1px solid #7fa079;border-radius:6px;font-size:12px;line-height:1.5;color:#ddedce;pointer-events:none;text-align:center}
+body.panel-open #campProject,body.action-open #campProject,body.dialog-open #campProject,body.party-open #campProject,body.panel-open #resourceReceipt{visibility:hidden}
+.camp-project-card{border-color:#877547;background:linear-gradient(135deg,#2b3222,#19281e)}.camp-eyebrow{font-size:10px;letter-spacing:.08em;color:#d4c38d;margin-bottom:5px}.camp-project-card h4{font-size:16px!important}.camp-project-card p{margin:7px 0}.camp-project-card button,.trail-recipe button{width:100%;min-height:44px;margin-top:9px}.project-complete{display:inline-block;padding:6px 9px;color:#c5e4b4;border:1px solid #59784c;border-radius:5px;font-size:12px}
+.recipe-cost{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0}.cost-chip{display:inline-flex;gap:7px;align-items:center;padding:5px 7px;border-radius:4px;border:1px solid #465542;font-size:12px;font-variant-numeric:tabular-nums}.cost-chip.enough{color:#c6e3b4}.cost-chip.short{color:#f1c296;border-color:#795841}.material-hint{font-size:12px;line-height:1.6;color:#c1c8b5;overflow-wrap:anywhere;margin-top:5px}
+.all-craft{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.all-craft>summary{font-size:13px;line-height:1.6;min-height:44px;padding:9px 3px;cursor:pointer;color:#e2d3af}.all-craft[open]>summary{margin-bottom:10px}.trail-recipes{margin-top:14px}.trail-recipes>h4{font-size:14px;color:#ede3ca;margin:8px 0}.trail-recipe{padding:13px;margin-top:9px;background:#17251de6;border:1px solid #485d48;border-radius:7px}.trail-recipe .pname{font-size:14px}.trail-recipe .pstats{line-height:1.7;margin-top:6px}
+.gear-preview{margin-top:9px;padding:9px;border:1px solid #526248;border-radius:5px;background:#18251c}.gear-preview>b,.slot-comparison>b{font-size:12px;color:#dfd7ba;line-height:1.6}.gear-comparison{font-size:12px;line-height:1.7}.stat-delta{display:inline-block;margin-right:7px}.gain{color:#b9e7bb}.loss{color:#f0b6a7}.effect-delta{display:flex;flex-direction:column;gap:2px}.gear-preview details>summary{padding:7px 0;min-height:36px;color:#bdc9b5;font-size:12px;cursor:pointer}.slot-comparison{border-top:1px solid #3e503c;padding:6px 0}.prow{align-items:flex-start}.pmain{min-width:0;overflow-wrap:anywhere}
+.garden-stages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0}.garden-stage{display:flex;flex-direction:column;gap:6px;padding:8px 6px;background:#17251d;border:1px solid #40543e;border-radius:5px;min-width:0}.garden-stage b,.garden-stage span{font-size:12px;line-height:1.5;overflow-wrap:anywhere}.garden-stage span{color:#b4c0a7}.garden-stage.planted{border-color:#6e8860}.garden-track{height:4px;background:#32412e;overflow:hidden;border-radius:3px}.garden-track i{display:block;height:100%;background:#b8d6a0}
+#panelBody{scrollbar-gutter:stable}.pstats,.rdesc,.expdesc{line-height:1.65}#panelBody .rrow{flex-wrap:wrap}#panelBody .rrow .pbtns{margin-left:auto}.rrow .recipe-cost{max-width:100%}
+@media(max-height:500px) and (orientation:landscape){#campProject{max-width:calc(100vw - 320px);font-size:11px;gap:4px;padding:5px 7px}#campProject button{font-size:11px;min-height:36px;padding:5px 6px}#resourceReceipt{bottom:12px;font-size:11px;max-width:calc(100vw - 350px)}#panel{width:min(460px,62vw)}#panelBody{padding:12px}.garden-stages{gap:4px}.garden-stage{padding:7px 4px}}
+@media(max-width:640px){#campProject{top:calc(62px + env(safe-area-inset-top));left:calc(92px + env(safe-area-inset-left));right:8px;max-width:none;transform:none;flex-wrap:wrap}#campProject #campProjectText{width:100%}#campProject #campCompass{width:20px}#mapTop{gap:5px}#mapCampDistance{font-size:10px;padding:5px 5px}#resourceReceipt{bottom:170px;max-width:calc(100vw - 30px)}}
+.craft-priority{margin-top:12px;padding-top:8px;border-top:1px solid var(--line)}
+.craft-fold{margin-top:10px;padding:0 10px 10px;border:1px solid var(--line);border-radius:6px;background:#142019}
+.craft-fold>summary{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 0;list-style:none;cursor:pointer;color:#e2d3af;font-size:13px;line-height:1.45}
+.craft-fold>summary::-webkit-details-marker{display:none}.craft-fold[open]>summary{margin-bottom:8px;border-bottom:1px solid var(--line)}
+.craft-lock{margin-left:auto;flex:none;color:#e4bf94;font-size:9px;letter-spacing:.06em}.craft-fold.unlocked .craft-lock{color:#b8d6a0}
+.craft-fold .expcard{margin-top:8px}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="vignette"></div>
+<div id="dmgflash"></div>
+<div id="warpfade"></div>
+<div id="deathfade"></div>
+<div id="pad"></div>
+<div id="joyBase"></div><div id="joyStick"></div>
+
+<div id="rotate" role="status" aria-live="polite">
+ <svg width="56" height="56" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2" fill="none" stroke="#d8a03c" stroke-width="2"/><circle cx="12" cy="18" r="1" fill="#d8a03c"/></svg>
+ <div id="rotateTxt">기기를 가로로 돌려주세요</div>
+</div>
+
+<div id="ui">
+  <div id="topleft" class="panel">
+    <div id="mmWrap" role="button" tabindex="0" aria-label="지도"><canvas id="mm" width="132" height="132" aria-hidden="true"></canvas><span id="mapCaption" class="map-caption">지도</span></div>
+    <div class="vital-heading"><span>HP</span><b id="hpValue">30 / 30</b></div><div class="bar"><i id="hpF"></i></div>
+    <div class="vital-heading"><span>ST</span><b id="stValue">100 / 100</b></div><div class="bar" id="stamBar"><i id="stF"></i></div>
+    <div id="lvRow"><span id="lvTxt">Lv 1</span><span id="xpTxt">0/25</span></div>
+    <div id="xpBar"><i id="xpF" style="width:0%"></i></div>
+    <div id="survivalHud" hidden role="status"></div>
+    <div id="resRow" class="panel"></div>
+    <div id="slotRow"></div>
+    <div id="statSum" class="panel"></div>
+  </div>
+
+  <div id="sysBtns" role="toolbar" aria-label="게임 메뉴"><button id="btnParty" type="button" aria-controls="coopPanel" aria-expanded="false" title="파티 만들기 · 참가 · 나가기 (O)">파티</button><button id="btnBag" title="배낭"><svg width="13" height="13" viewBox="0 0 14 14"><path d="M3 5h8l1 7H2z" fill="none" stroke="#e8e2cf" stroke-width="1.5"/><path d="M5 5V3.5a2 2 0 0 1 4 0V5" fill="none" stroke="#e8e2cf" stroke-width="1.5"/></svg></button><button id="btnPause" title="일시정지"><svg width="10" height="12" viewBox="0 0 10 12"><rect x="1" y="1" width="3" height="10" fill="#e8e2cf"/><rect x="6" y="1" width="3" height="10" fill="#e8e2cf"/></svg></button><button id="btnHelp">⌘</button></div>
+
+  <div id="voyage" class="panel"><div class="eyebrow" id="voyageLabel">원정</div><b id="voyageRegion"></b><small id="voyageNext"></small><div id="voyageTrack"><div id="voyageFill"></div></div><small id="voyageGoal"></small><div id="voyageActions"><button id="raftBtn"></button><button id="signalBtn"></button></div></div><div id="saveWarning">저장 공간이 부족합니다. 설정에서 저장 파일을 내보내세요.</div>
+  <div id="journeyHud" role="status"><span id="journeyIcon" aria-hidden="true">✧</span><span id="journeyText"></span><button id="tutorialSkip" type="button">Skip</button></div><div id="tutorialArrow" hidden aria-hidden="true">↓</div>
+  <div id="campProject" hidden><span id="campProjectText"></span><span id="campCompass" aria-hidden="true">➤</span><button id="campProjectOpen" type="button"></button><button id="campProjectLater" type="button"></button></div><div id="resourceReceipt" role="status" aria-live="polite" hidden></div>
+  <div id="tutSteps">
+    <span id="tutStepsTitle"></span>
+    <div id="tutStepsList"></div>
+  </div>
+  <div id="tutMsg"></div>
+
+  <div id="panel" class="panel" role="region" aria-label="배낭과 제작">
+    <div id="panelTabs" role="tablist">
+      <button class="ptab" role="tab" aria-controls="panelBody" id="tabBag"></button>
+      <button class="ptab" role="tab" aria-controls="panelBody" id="tabCraft"></button>
+      <button id="panelClose">×</button>
+    </div>
+    <div id="panelBody" role="tabpanel"></div>
+  </div>
+
+  <div id="quickbar">
+    <button class="qbtn" data-use="berry"><span class="qico" data-ico="berry"></span><b>0</b></button>
+    <button class="qbtn" data-use="heal"><span class="qico" data-ico="potion"></span><b>0</b></button>
+    <button class="qbtn" data-use="tea"><span class="qico" data-ico="tea"></span><b>0</b></button>
+    <button class="qbtn" data-use="fish"><span class="qico" data-ico="fish"></span><b>0</b></button>
+  </div>
+
+  <div id="pickupHint" class="panel"></div>
+  <div id="hintBar" class="panel"></div>
+  <div id="toasts"></div>
+
+  <div id="dlg" class="panel">
+    <div class="dlgName"></div>
+    <div class="dlgText"></div>
+    <div class="dlgShop"></div>
+    <button type="button" class="dlgNext" id="dlgNext">▸</button>
+    <div class="dlgBtns"></div>
+  </div>
+</div>
+
+<div id="ctrl">
+  <button type="button" class="cbtn" id="btnAtk"></button>
+  <button type="button" class="cbtn" id="btnRun"></button>
+  <button type="button" class="cbtn" id="btnUse"></button>
+</div>
+
+<div id="tutOv" role="dialog" aria-modal="true" aria-label="튜토리얼">
+  <div id="tutBox">
+    <div class="tutSpeaker" id="tutSpeaker"></div>
+    <h2 id="tutTitle"></h2>
+    <div id="tutBody"></div>
+    <div class="tutHintLine" id="tutHintLine"></div>
+    <div class="tutRow">
+      <button class="ghost" id="tutSkip"></button>
+      <button class="acc" id="tutOk"></button>
+    </div>
+  </div>
+</div>
+
+<div id="mapOv">
+  <div id="mapTop">
+    <span id="mapTitle"></span><span id="mapCampDistance" role="status"></span>
+    <div id="mapZoom">
+      <button id="mapZoomOut">−</button>
+      <span id="mapZoomLv">×2</span>
+      <button id="mapZoomIn">+</button>
+    </div>
+    <button id="mapClose">×</button>
+  </div>
+  <canvas id="bigmap"></canvas>
+  <div id="mapLegend"></div>
+</div>
+
+<div id="pauseOv" role="dialog" aria-modal="true" aria-label="일시정지">
+  <div id="pauseBox">
+    <h2 id="pauseTitle"></h2>
+    <div id="pauseStats"></div>
+    <div id="pauseHint"></div>
+    <div class="row">
+      <button id="btnResume" class="acc"></button>
+      <button id="btnPauseHelp"></button>
+    </div>
+  </div>
+</div>
+
+<div id="title">
+  <div id="titleLangs"><button id="btnLang2" hidden tabindex="-1" aria-hidden="true">EN</button></div>
+  <div id="titleBox">
+    <div id="logoRow"><canvas id="logoCv" width="32" height="32"></canvas><div id="gameTitle">DRIFTER · ECHO ISLES</div></div>
+    <div id="subtitle" data-i18n="subtitle">Awaken sleeping islands. Bring their light home.</div>
+    <div id="titleBtns">
+      <button id="btnCont" disabled class="acc" data-i18n="cont" style="display:none">Continue journey</button>
+      <button id="btnNew" disabled data-i18n="newgame">Loading…</button>
+      <button id="btnCoop" class="acc">친구와 함께</button>
+      <div id="confirmNew"><span data-i18n="confirmNew"></span>
+        <button id="cnYes" class="warn" data-i18n="yes"></button><button id="cnNo" data-i18n="no"></button>
+      </div>
+    </div>
+    <div id="titleFoot" data-i18n="titleFoot"></div>
+  </div>
+</div>
+
+<div id="coopWake" role="alertdialog" aria-live="polite" style="display:none;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;background:rgba(4,9,7,.78);padding:16px">
+  <div style="width:min(420px,100%);padding:20px;background:#17231b;border:1px solid #71846e;border-radius:10px;color:#f1ead7;font:14px/1.55 system-ui"><strong data-wake-title></strong><p data-wake-text style="margin:10px 0 16px;color:#c4d0bd"></p><button type="button" data-wake-cancel style="min-height:40px;padding:8px 14px">취소</button></div>
+</div>
+<div id="coopPanel" role="dialog" aria-modal="true" aria-labelledby="coopTitle">
+  <div id="coopCard">
+    <h2 id="coopTitle">친구와 함께</h2>
+    <p id="coopIntro">4인 파티를 만들거나 방 코드로 참가하세요. O 키로 열 수 있습니다.</p>
+    <label id="coopNameLabel" for="coopName">이름</label><input id="coopName" maxlength="20" autocomplete="nickname" placeholder="Drifter">
+    <div id="coopStatusText" role="status" aria-live="polite"></div>
+    <div id="coopLobby" hidden><div id="coopRoomCode"></div><div id="coopLobbyActions"><button id="coopCopy">코드 복사</button><button id="coopInvite" hidden>친구 초대</button></div><p id="coopLobbyText"></p></div>
+    <label id="coopCodeLabel" for="coopCode">방 코드</label><input id="coopCode" maxlength="8" autocomplete="off" autocapitalize="characters" placeholder="4F7B2A91">
+    <div id="coopActions">
+      <button id="coopCreate" class="acc">방 만들기</button><button id="coopJoin">코드로 참가</button>
+      <button id="coopStart" class="acc" hidden>탐험 시작</button><button id="coopLeave" class="warn" hidden>나가기</button>
+      <button id="coopClose">닫기</button>
+    </div>
+    <p id="coopNote">게임 중 파티를 만들면 같은 월드에서 만납니다. 혼자 진행한 기록은 파티를 나가면 복구됩니다.</p>
+    <p id="coopPrivacy">개인정보: 닉네임과 게임 상태만 방 서버로 전송됩니다. 계정 정보는 요청하지 않습니다.</p>
+  </div>
+</div>
+<div id="coopStatus"><span id="coopBadge"></span><button id="coopManage" aria-controls="coopPanel" aria-expanded="false">파티 관리</button><button id="coopLeaveQuick" class="warn">나가기</button></div>
+
+<div id="modal" role="dialog" aria-modal="true" aria-label="설정">
+  <div id="modalBox">
+    <h2 data-i18n="helpTitle"></h2><div class="settings-caption"><span class="eyebrow" id="settingsLabel">환경 설정</span></div><div class="settings-grid"><label class="language-field" for="languageSelect"><span id="languageLabel">언어</span><select id="languageSelect"><option value="ko">한국어</option><option value="en">English</option></select></label><button id="btnLang" hidden tabindex="-1" aria-hidden="true">EN</button><button id="btnMute"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4V9Z"/><path id="sndWave" d="M17 8c3 2 3 6 0 8"/></svg><span id="soundLabel">소리 켜짐</span></button><button id="btnTut" title="Tutorial">?</button></div>
+    <details class="guide-block"><summary id="controlsLabel">조작 방법</summary>
+    <ul>
+      <li><b data-i18n="kMove"></b> <span data-v-move></span></li>
+      <li><b data-i18n="kRun"></b> <span data-v-run></span></li>
+      <li><b data-i18n="kAct"></b> <span data-v-act></span></li>
+      <li><b data-i18n="kUse"></b> <span data-v-use></span></li>
+      <li><b data-i18n="kBag"></b> <span data-v-bag></span></li>
+      <li><b data-i18n="kItem"></b> <span data-v-item></span></li>
+      <li><b data-i18n="kMap"></b> <span data-v-map></span></li>
+      <li><b data-i18n="kPause"></b> <span data-v-pause></span></li>
+    </ul></details>
+    <details class="guide-block"><summary id="tipsLabel">탐험 도움말</summary>
+    <p data-i18n="helpTip"></p></details>
+    <p data-i18n="helpSave"></p><details class="guide-block"><summary id="islesGuideLabel">섬 · 뗏목 안내</summary><div id="expHelp" class="expcard"></div></details><h3 id="saveSectionLabel">진행 기록</h3><div class="row"><button id="exportSave">저장 내보내기</button><button id="importSave">저장 가져오기</button><input type="file" id="importInput" accept="application/json,.json" hidden></div>
+    <div class="row">
+      <button id="btnWipe" class="warn" data-i18n="wipe"></button>
+      <button id="btnCloseM" class="acc" data-i18n="close"></button>
+    </div>
+  </div>
+</div>
+
+<div id="actionMenu" role="dialog" aria-modal="true" aria-labelledby="actionMenuTitle" hidden><div id="actionMenuBox"><div class="action-menu-heading"><div><h2 id="actionMenuTitle"></h2><p id="actionMenuHint"></p></div><button type="button" id="actionMenuClose" aria-label="닫기">×</button></div><div id="actionMenuList"></div></div></div>
+<script src="platform.js?v=gd1"></script>
+<script src="gamedistribution.js?v=1.5.5-party-ui1"></script>
+<script src="coop-config.js"></script>
+<script src="colyseus-sdk.js"></script>
+<script src="game.js?v=1.5.5-party-ui1"></script>
+<script src="expedition.js?v=1.5.5-party-ui1"></script>
+<script src="multiplayer.js?v=1.5.5-party-ui1"></script>
+<script>
+'use strict';
+window.DrifterBoot().catch(()=>{document.getElementById('subtitle').textContent='Unable to load. Please refresh the page.';});
+
+</script>
+
+</body>
+</html>

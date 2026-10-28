@@ -1,0 +1,7 @@
+.openai/
+dist/
+worker/index.js
+node_modules/
+.env
+.env.*
+!.env.example

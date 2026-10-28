@@ -1,0 +1,20 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const makeGame=require('./harness.cjs');
+(async()=>{
+ const dir=path.resolve('../tmp/camp-network');fs.mkdirSync(dir,{recursive:true});
+ for(const file of['platform.js','game.js','expedition.js','multiplayer.js'])fs.copyFileSync(path.join('game-assets',file),path.join(dir,file));
+ const p=path.join(dir,'multiplayer.js');let s=fs.readFileSync(p,'utf8');const end=s.lastIndexOf('})();');assert(end>0);
+ s=s.slice(0,end)+`window.__campNetworkQA={enter(){inPartyWorld=true;sessionId='qa-self';room={send(){},state:{worldTime:0}};},nodeEffect,finishLootClaim,applyProgress};\n`+s.slice(end);fs.writeFileSync(p,s);
+ const g=await makeGame({assetsDir:dir});const{run,storage}=g;
+ run(`freshStart();tutOpenIntro();tutStepDone('move');__campNetworkQA.enter();__campNetworkQA.nodeEffect({id:'no-node:1',revision:1,actorId:'qa-self',damage:3});`);
+ assert.equal(run('tutCur()'),'gather','server hit acknowledgement must not finish the lesson');
+ run(`__campNetworkQA.finishLootClaim({id:'resource-1',claimant:'qa-self',item:{kind:'resource',res:'wood',amount:2}});`);
+ assert.equal(run('player.res.wood'),2);assert.equal(run('tutCur()'),'bag');
+ assert.equal(run('exp.firstGatherDone'),true,'an authoritative co-op grant ends first-harvest guidance');
+ assert.equal(JSON.parse(storage.get('drifter_save_v1')).exp.firstGatherDone,true,'the co-op harvest hint state is saved');
+ run(`__campNetworkQA.finishLootClaim({id:'resource-1',claimant:'qa-self',item:{kind:'resource',res:'wood',amount:2}});`);assert.equal(run('player.res.wood'),2,'replayed grant stays idempotent');
+ run(`campProgress().lamp=true;__campNetworkQA.applyProgress(JSON.stringify({claimed:[],seeds:[0],planted:[0],stash:[],runes:{},mirrors:{},fireRadius:400,fireUpdatedAt:0}));`);
+ assert(run('campProgress().lamp'));assert.equal(run('exp.planted[0]'),0);assert.equal(run('exp.fireRadius'),400);
+ run(`saveGame();loadSave();`);assert(run('campProgress().lamp'));assert(run('validSave(JSON.parse(DrifterPlatform.storage.getItem(SAVE_KEY)))'));
+ console.log('PASS authoritative co-op: hit/grant separation, replay protection, shared progress and personal camp save');
+})().catch(e=>{console.error(e);process.exitCode=1;});

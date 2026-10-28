@@ -1,0 +1,30 @@
+{
+  "name": "drifter-colyseus-server",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20 <25"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@colyseus/schema": "5.0.40",
+    "@colyseus/ws-transport": "0.18.4",
+    "colyseus": "0.18.9",
+    "cors": "2.8.5",
+    "express": "5.1.0"
+  },
+  "devDependencies": {
+    "@colyseus/sdk": "^0.18.5",
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.3",
+    "@types/node": "24.8.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}
