@@ -1,0 +1,117 @@
+# Opt-in multi-node topology. Applying this Blueprint changes the existing
+# drifter-colyseus service to a paid gateway plan and creates two paid workers
+# plus a Render Key Value instance.
+services:
+  - type: web
+    name: drifter-colyseus
+    runtime: node
+    plan: 0.5c-512mb
+    numInstances: 1
+    region: oregon
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: DRIFTER_SERVICE_ROLE
+        value: gateway
+      - key: DRIFTER_ALLOWED_ORIGINS
+        value: "*"
+      - fromGroup: drifter-cluster-secrets
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: drifter-routing
+          property: connectionString
+      - key: DRIFTER_WORKER_1_INTERNAL_HOST
+        fromService:
+          type: web
+          name: drifter-node-1
+          property: hostport
+      - key: DRIFTER_WORKER_2_INTERNAL_HOST
+        fromService:
+          type: web
+          name: drifter-node-2
+          property: hostport
+
+  - type: web
+    name: drifter-node-1
+    runtime: node
+    plan: 0.5c-512mb
+    numInstances: 1
+    region: oregon
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: DRIFTER_SERVICE_ROLE
+        value: worker
+      - key: DRIFTER_WORKER_INDEX
+        value: 1
+      - key: DRIFTER_MAX_PLAYERS
+        value: 4
+      - key: DRIFTER_ALLOWED_ORIGINS
+        value: "*"
+      - fromGroup: drifter-cluster-secrets
+      - key: DRIFTER_PUBLIC_ADDRESS
+        fromService:
+          type: web
+          name: drifter-node-1
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
+      - key: DRIFTER_GATEWAY_INTERNAL_HOST
+        fromService:
+          type: web
+          name: drifter-colyseus
+          property: hostport
+
+  - type: web
+    name: drifter-node-2
+    runtime: node
+    plan: 0.5c-512mb
+    numInstances: 1
+    region: oregon
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: DRIFTER_SERVICE_ROLE
+        value: worker
+      - key: DRIFTER_WORKER_INDEX
+        value: 2
+      - key: DRIFTER_MAX_PLAYERS
+        value: 4
+      - key: DRIFTER_ALLOWED_ORIGINS
+        value: "*"
+      - fromGroup: drifter-cluster-secrets
+      - key: DRIFTER_PUBLIC_ADDRESS
+        fromService:
+          type: web
+          name: drifter-node-2
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
+      - key: DRIFTER_GATEWAY_INTERNAL_HOST
+        fromService:
+          type: web
+          name: drifter-colyseus
+          property: hostport
+
+  - type: keyvalue
+    name: drifter-routing
+    plan: 256mb
+    region: oregon
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+    persistenceMode: journal-snapshot
+
+envVarGroups:
+  - name: drifter-cluster-secrets
+    envVars:
+      - key: DRIFTER_INTERNAL_SECRET
+        generateValue: true

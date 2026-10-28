@@ -1,6 +1,6 @@
 {
   "name": "drifter-colyseus-server",
-  "version": "1.2.0",
+  "version": "1.4.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -17,7 +17,8 @@
     "@colyseus/ws-transport": "0.18.4",
     "colyseus": "0.18.9",
     "cors": "2.8.5",
-    "express": "5.1.0"
+    "express": "5.1.0",
+    "ioredis": "5.11.1"
   },
   "devDependencies": {
     "@colyseus/sdk": "^0.18.5",
