@@ -50,6 +50,6 @@ const makeGame=require('./harness.cjs');
  });
  test('both languages render every new interface and remain valid at small canvas sizes',()=>{
   for(const[w,h]of[[821,462],[800,450],[1280,720]])for(const lang of['ko','en']){g.env.innerWidth=w;g.env.innerHeight=h;run(`LANG='${lang}';applyLang();resize();render();openInv('craft');renderPanel();closeInv();`);assert.equal(run('orientationBlocked'),false);}
-  const html=fs.readFileSync('game-assets/index.html','utf8');const ids=[...html.split('<script>')[0].matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(ids.length,new Set(ids).size);assert.equal(run('RELEASE_VERSION'),'1.5.5');
+  const html=fs.readFileSync('game-assets/index.html','utf8');const ids=[...html.split('<script>')[0].matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(ids.length,new Set(ids).size);assert.equal(run('RELEASE_VERSION'),'1.5.6');
  });
 })().catch(e=>{console.error(e);process.exitCode=1;});
