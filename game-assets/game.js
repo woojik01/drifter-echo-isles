@@ -2365,7 +2365,7 @@ function questIcon(q){
   default:return 'star'}}
 function bagHTML(){
  let h='';
- h+='<details class="quest-list"><summary>'+t('qSect')+'</summary>';
+ h+='<details class="quest-list" id="bagQuests" '+(bagFoldState.quests?'open':'')+'><summary>'+t('qSect')+'</summary>';
  for(const q of quests){
   const rw=15+q.need*4;
   h+='<div class="prow"><span class="pico" data-ico="'+questIcon(q)+'"></span>'
@@ -2932,10 +2932,10 @@ function atCamp(){return Math.hypot(player.x-camp.x,player.y-camp.y)<120}
 function itemTotals(eq){const o=equipBaseStats(eq);for(const a of eq.opts)o[a.k]=(o[a.k]||0)+a.v;return o}
 function compareHTML(a,b){const aa=itemTotals(a),bb=b?itemTotals(b):{},parts=[];for(const k of Object.keys(STAT_META)){const d=(aa[k]||0)-(bb[k]||0);if(d)parts.push(statName(k)+' '+(d>0?'+':'')+d)}return '<div class="compare">'+L('교체 시: ','On swap: ')+parts.join(' · ')+(a.effect!==b?.effect?' · '+L('고유 효과 변경','Effect changes'):'')+'</div>'}
 const originalBag=bagHTML;
-bagHTML=function(){let h='<div class="expcard"><h4>'+L('원정 기록','Expedition log')+'</h4><div class="expdesc">'+L('섬 발견 ','Islands found ')+exp.found.length+' · '+L('제단 개방 ','Altars opened ')+exp.claimed.length+'<br>'+L('조류 유리 ','Tideglass ')+exp.glass+' · '+L('거점 식물 ','Camp plants ')+exp.seeds.length+'/3</div></div>';
+bagHTML=function(){let h=bagFoldStart('log',L('원정 기록','Expedition log'))+'<div class="expcard"><h4>'+L('원정 기록','Expedition log')+'</h4><div class="expdesc">'+L('섬 발견 ','Islands found ')+exp.found.length+' · '+L('제단 개방 ','Altars opened ')+exp.claimed.length+'<br>'+L('조류 유리 ','Tideglass ')+exp.glass+' · '+L('거점 식물 ','Camp plants ')+exp.seeds.length+'/3</div></div></details>';
  if(replaceState&&replaceState.slot>=0)h+=compareHTML(replaceState.g.eq,player.equip[replaceState.slot]);h+=originalBag();
- h+='<div class="expcard"><h4>'+L('모닥불 보관함 ','Camp chest ')+exp.stash.length+'/12</h4>';
- if(atCamp()){for(let j=0;j<3;j++)if(player.equip[j])h+='<button data-exp="store" data-i="'+j+'">'+L('보관: ','Store: ')+equipName(player.equip[j])+'</button>';exp.stash.forEach((e,j)=>{h+='<div class="expdesc">'+equipName(e)+' · '+L('단계 ','Region ')+((e.tier||0)+1)+' <button data-exp="withdraw" data-i="'+j+'">'+L('꺼내기','Take out')+'</button></div>'})}else h+='<div class="expdesc">'+L('모닥불 근처에서 보관하거나 꺼낼 수 있습니다.','Store or withdraw gear near the campfire.')+'</div>';return h+'</div>'};
+ h+=bagFoldStart('chest',L('모닥불 보관함','Camp chest'))+'<div class="expcard"><h4>'+L('모닥불 보관함 ','Camp chest ')+exp.stash.length+'/12</h4>';
+ if(atCamp()){for(let j=0;j<3;j++)if(player.equip[j])h+='<button data-exp="store" data-i="'+j+'">'+L('보관: ','Store: ')+equipName(player.equip[j])+'</button>';exp.stash.forEach((e,j)=>{h+='<div class="expdesc">'+equipName(e)+' · '+L('단계 ','Region ')+((e.tier||0)+1)+' <button data-exp="withdraw" data-i="'+j+'">'+L('꺼내기','Take out')+'</button></div>'})}else h+='<div class="expdesc">'+L('모닥불 근처에서 보관하거나 꺼낼 수 있습니다.','Store or withdraw gear near the campfire.')+'</div>';return h+'</div></details>'};
 $('panelBody').addEventListener('change',e=>{if(e.target.id==='forgeSelect'){forgeTier=+e.target.value;renderPanel()}});
 $('panelBody').addEventListener('click',e=>{const b=e.target.closest('[data-exp]');if(!b)return;const a=b.dataset.exp;if(window.DrifterMultiplayer?.sharedAction?.(a,b))return;if(a==='raft'){toggleRaft();renderPanel()}if(a==='compass'&&!exp.compass&&exp.glass>=3){exp.glass-=3;exp.compass=true;toast(L('조류 나침반이 미개방 섬을 가리킵니다.','The Tide Compass points to unopened islands.'));renderPanel();saveGame()}if(a==='store'&&atCamp()&&exp.stash.length<12){const i=+b.dataset.i;if(player.equip[i]){exp.stash.push(player.equip[i]);player.equip[i]=null;recalcStats();renderPanel();saveGame()}}if(a==='withdraw'&&atCamp()){const i=+b.dataset.i,eq=exp.stash[i];if(eq){exp.stash.splice(i,1);const slot=player.equip.indexOf(null);if(slot>=0){player.equip[slot]=eq;recalcStats()}else addGroundEquip({eq,x:camp.x+28,y:camp.y+20,ttl:null,uid:++uid,spawnT:gameT});renderPanel();saveGame()}}});
 const originalOpenInv=openInv,originalCloseInv=closeInv;
@@ -3036,15 +3036,23 @@ const UI_ICONS={
  full:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>'
 };
 function uiIcon(name){return '<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+UI_ICONS[name]+'</svg>'}
-function uiResources(){return '<section class="resource-ledger" aria-label="'+L('보유 재료','Materials')+'">'+RES_KEYS.map(k=>'<div class="resource-tile'+(player.res[k]?'':' empty')+'" title="'+RES_META[k][LANG]+'"><span data-ico="'+k+'"></span><span>'+RES_META[k][LANG]+'</span><b>'+player.res[k]+'</b></div>').join('')+'</section>'}
+const bagFoldState={quests:false,log:false,chest:false,survival:false,garden:false,resources:false,summary:false};
+function bagFoldStart(key,label){return '<details class="craft-fold bag-fold" data-bag-fold="'+key+'" '+(bagFoldState[key]?'open':'')+'><summary>'+label+'</summary>';}
+function uiResources(){
+ const early=!campProgress().lamp;
+ const tiles=keys=>'<section class="resource-ledger" aria-label="'+L('보유 재료','Materials')+'">'+keys.map(k=>'<div class="resource-tile'+(player.res[k]?'':' empty')+'" title="'+RES_META[k][LANG]+'"><span data-ico="'+k+'"></span><span>'+RES_META[k][LANG]+'</span><b>'+player.res[k]+'</b></div>').join('')+'</section>';
+ if(!early)return tiles(RES_KEYS);
+ const priority=RES_KEYS.filter(k=>k==='wood'||k==='stone'||player.res[k]>0),other=RES_KEYS.filter(k=>!priority.includes(k));
+ return tiles(priority)+(other.length?bagFoldStart('resources',L('다른 자원','Other materials'))+tiles(other)+'</details>':'');
+}
 const uiBagHTML=bagHTML;
-bagHTML=function(){return uiResources()+uiBagHTML()};
+bagHTML=function(){return uiBagHTML()};
 sectBtn=function(key,label){const open=!!(secOpen[key]||(key==='equip'&&replaceState));return '<button type="button" class="sectbtn" data-act="togSec" data-sec="'+key+'" aria-expanded="'+open+'"><span>'+label+'</span><span aria-hidden="true">'+(open?'−':'+')+'</span></button>'};
 let uiRenderedTab=null;
 const uiRenderPanel=renderPanel;
 renderPanel=function(){if(!invOpen)return;const el=$('panelBody'),position=uiRenderedTab===invTab?(el.scrollTop||0):0;uiRenderPanel();el.scrollTop=position;uiRenderedTab=invTab;$('tabBag').setAttribute('aria-selected',String(invTab==='bag'));$('tabCraft').setAttribute('aria-selected',String(invTab==='craft'));$('btnBag').setAttribute('aria-expanded','true')};
 const uiOpenInv=openInv,uiCloseInv=closeInv;
-openInv=function(tab){if(!secOpen)secOpen={equip:true,ground:true,use:false,fish:false};uiOpenInv(tab);$('btnBag').setAttribute('aria-expanded',String(invOpen))};
+openInv=function(tab){if(!secOpen)secOpen={equip:false,ground:false,use:false,fish:false};uiOpenInv(tab);$('btnBag').setAttribute('aria-expanded',String(invOpen))};
 closeInv=function(){uiCloseInv();$('btnBag').setAttribute('aria-expanded','false');uiRenderedTab=null};
 const uiDialogStart=startDialog,uiDialogEnd=endDialog;
 startDialog=function(npc){uiDialogStart(npc);document.body.classList.toggle('dialog-open',!!dlg)};
@@ -3099,7 +3107,7 @@ function consumableActions(){
  for(const id of FISH_ORDER){const n=player.fish[id]||0;if(n<1)continue;const f=FISH_INFO[id];out.push(actionEntry('eat:'+id,f[LANG]+' · '+n,'HP +'+f.heal+(f.stam?' · ST 100%':''),()=>eatFish(id)))}
  return out;
 }
-function openCampChest(){openInv('bag');if(secOpen)secOpen.equip=true;renderPanel();const cards=$('panelBody').querySelectorAll('.expcard');const card=cards[cards.length-1];if(card&&card.scrollIntoView)card.scrollIntoView({block:'start',behavior:'smooth'})}
+function openCampChest(){bagFoldState.chest=true;openInv('bag');if(secOpen)secOpen.equip=true;renderPanel();const card=$('panelBody').querySelector('[data-bag-fold="chest"]');if(card&&card.scrollIntoView)card.scrollIntoView({block:'start',behavior:'smooth'})}
 function craftTideCompass(){if(exp.compass||exp.glass<3)return;exp.glass-=3;exp.compass=true;sfx('trade');toast(L('조류 나침반을 만들었습니다.','Tide Compass crafted.'));saveGame();updateVoyageHud()}
 function harvestAction(n){if(player.atkCool>0||n.dead||exp.sailing)return;player.atkCool=.45;attackT=.18;attackDir=Math.atan2(n.y-8-(player.y-6),n.x-player.x);player.face=n.x<player.x?-1:1;attackWeapon=firstIcon('pickaxe');sfx('swing');damageNode(n,stats.atk)}
 function availableActions(){
@@ -3188,7 +3196,7 @@ updateNearEquip=function(){
  const signature=LANG+':'+label+':'+choices.length;if(signature!==actionButtonSignature){actionButtonSignature=signature;$('btnUse').innerHTML=uiIcon('use')+'<span>'+label+'</span>'+badge}$('btnUse').setAttribute('aria-label',label+(choices.length>1?' · '+choices.length:''));
 };
 const contextBag=bagHTML;
-bagHTML=function(){const r=REGIONS[tierAt(player.x,player.y)],d=Math.floor(distanceM(player.x,player.y));return '<div class="expcard expedition-summary"><h4>'+L('원정 · ','Expedition · ')+r[LANG]+' · '+d+'m</h4><div class="expdesc">'+expeditionSignal()+'</div></div>'+contextBag()};
+bagHTML=function(){const r=REGIONS[tierAt(player.x,player.y)],d=Math.floor(distanceM(player.x,player.y));return bagFoldStart('summary',L('현재 원정','Current expedition'))+'<div class="expcard expedition-summary"><h4>'+L('원정 · ','Expedition · ')+r[LANG]+' · '+d+'m</h4><div class="expdesc">'+expeditionSignal()+'</div></div></details>'+contextBag()};
 const contextCaptions=uiCaptions;
 uiCaptions=function(){contextCaptions();actionButtonSignature='';$('languageSelect').value=LANG;$('languageLabel').textContent=L('언어','Language');$('btnLang').hidden=true;$('btnLang2').hidden=true;$('btnAtk').innerHTML=uiIcon('sword')+'<span>'+L('공격','Attack')+'</span>';$('btnAtk').setAttribute('aria-label',L('공격 · 채집','Attack / gather'));$('actionMenuClose').setAttribute('aria-label',L('닫기','Close'))};
 // Language changes have a single explicit entry point. Hidden title controls cannot toggle it.

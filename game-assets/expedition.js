@@ -1,6 +1,6 @@
 'use strict';
 // Release 1.4: survival cycle, campfire defense, and night creatures.
-const RELEASE_VERSION='1.5.5';
+const RELEASE_VERSION='1.5.6';
 let orientationBlocked=false;
 let backgroundSuspended=false, distributionAdPaused=false, journeyClock=0, journeyTarget=null, guideWisp=null;
 const INTRO_ISLANDS=[
@@ -387,7 +387,7 @@ render=function(){
 const releaseBag=bagHTML;
 bagHTML=function(){
  const seeds=exp.seeds.map(s=>'<span class="garden-seed">'+SEED_NAMES[LANG][s]+' · '+(exp.planted.includes(s)?L('피어남','Planted'):L('씨앗 보유','Seed collected'))+'</span>').join('');
- return '<div class="expcard"><h4>'+L('생존','Survival')+'</h4><div class="expdesc">'+L((survivalPhase().night?'밤 ':'낮 ')+Math.floor(survivalPhase().secondsLeft/60)+':'+String(survivalPhase().secondsLeft%60).padStart(2,'0')+' · 불빛 반경 '+Math.round(campfireRadius()),(survivalPhase().night?'Night ':'Day ')+Math.floor(survivalPhase().secondsLeft/60)+':'+String(survivalPhase().secondsLeft%60).padStart(2,'0')+' · Firelight '+Math.round(campfireRadius()))+'</div>'+(atCamp()?'<button data-exp="stokeFire" '+(player.res.wood>=FIRE_COST&&campfireRadius()<FIRE_MAX?'':'disabled')+'>'+L('장작불 키우기 · 나무 4','Feed fire · 4 wood')+'</button>':'')+'</div>'+
+ return bagFoldStart('survival',L('야간 생존','Night survival'))+'<div class="expcard"><h4>'+L('생존','Survival')+'</h4><div class="expdesc">'+L((survivalPhase().night?'밤 ':'낮 ')+Math.floor(survivalPhase().secondsLeft/60)+':'+String(survivalPhase().secondsLeft%60).padStart(2,'0')+' · 불빛 반경 '+Math.round(campfireRadius()),(survivalPhase().night?'Night ':'Day ')+Math.floor(survivalPhase().secondsLeft/60)+':'+String(survivalPhase().secondsLeft%60).padStart(2,'0')+' · Firelight '+Math.round(campfireRadius()))+'</div>'+(atCamp()?'<button data-exp="stokeFire" '+(player.res.wood>=FIRE_COST&&campfireRadius()<FIRE_MAX?'':'disabled')+'>'+L('장작불 키우기 · 나무 4','Feed fire · 4 wood')+'</button>':'')+'</div></details>'+
   '<div class="expcard"><h4>'+L('모닥불 정원','Camp garden')+' · '+exp.planted.length+'/3</h4><div class="expdesc">'+L('서로 다른 섬의 씨앗을 가져와 모닥불 곁에서 행동으로 심으세요.','Bring seeds from each island type and use Interact beside the campfire to plant them.')+'</div><div class="garden-list">'+seeds+'</div></div>'+releaseBag();
 };
 
@@ -510,8 +510,9 @@ const MATERIAL_SOURCES={
  berry:['열매 덤불','berry bushes'],jelly:['슬라임','slimes'],fang:['늑대·거미','wolves / spiders'],core:['골렘','golems'],
  gloom:['밤의 어둠 몬스터','night creatures'],nightFang:['어둠 송곳니 몬스터','Gloomfangs'],nightCore:['거대한 어둠 몬스터','Ashbrutes']
 };
-let advancedGearOpen=false,advancedGearSeenUnlocked=false,regionCraftOpen=false,regionCraftSeenUnlocked=false,shadowGearOpen=false,shadowGearSeenUnlocked=false,campUiClock=0,collectionUntil=0;
+let advancedGearOpen=false,advancedGearSeenUnlocked=false,regionCraftOpen=false,regionCraftSeenUnlocked=false,shadowGearOpen=false,shadowGearSeenUnlocked=false,earlyCraftOpen=false,earlyCraftSeenLamp=false,campUiClock=0,collectionUntil=0;
 const collectionCounts=new Map();
+const bagRevealSeen={garden:false,log:false,survival:false};
 function defaultCampProject(){return{lamp:false,hidden:false,gardenAge:[0,0,0],nightIndex:-1,lastDawn:-1,watch:0,nightMarks:0};}
 function campProgress(){
  if(!exp.campProject){exp.campProject=defaultCampProject();for(const s of exp.planted||[])exp.campProject.gardenAge[s]=90;}
@@ -549,7 +550,7 @@ validSave=function(data){
 const campLoadSave=loadSave;
 loadSave=function(){let prior;try{prior=JSON.parse(DrifterPlatform.storage.getItem(SAVE_KEY));}catch{}const ok=campLoadSave();if(ok){const p=campProgress();if(!prior?.exp?.campProject)for(const s of exp.planted)p.gardenAge[s]=90;collectionCounts.clear();collectionUntil=0;}return ok;};
 const campFreshStart=freshStart;
-freshStart=function(){advancedGearOpen=false;advancedGearSeenUnlocked=false;regionCraftOpen=false;regionCraftSeenUnlocked=false;shadowGearOpen=false;shadowGearSeenUnlocked=false;collectionCounts.clear();collectionUntil=0;return campFreshStart();};
+freshStart=function(){earlyCraftOpen=false;earlyCraftSeenLamp=false;for(const key in bagFoldState)bagFoldState[key]=false;for(const key in bagRevealSeen)bagRevealSeen[key]=false;secOpen=null;advancedGearOpen=false;advancedGearSeenUnlocked=false;regionCraftOpen=false;regionCraftSeenUnlocked=false;shadowGearOpen=false;shadowGearSeenUnlocked=false;collectionCounts.clear();collectionUntil=0;return campFreshStart();};
 
 function noteCollected(key,count=1){
  if(!RES_META[key])return;
@@ -609,8 +610,12 @@ function craftTrailGear(key){
  sfx('trade');renderRes(true);saveGame();return true;
 }
 const campCraftHTML=craftHTML;
-craftHTML=function(){return lampCardHTML()+(campProgress().lamp?trailCraftHTML():'')+campCraftHTML();};
-$('panelBody').addEventListener('toggle',e=>{const id=e.target?.id;if(id==='advancedGearRecipes')advancedGearOpen=!!e.target.open;if(id==='regionCraftRecipes')regionCraftOpen=!!e.target.open;if(id==='shadowGearRecipes')shadowGearOpen=!!e.target.open;},true);
+craftHTML=function(){
+ const lit=campProgress().lamp;
+ if(lit&&!earlyCraftSeenLamp){earlyCraftOpen=true;earlyCraftSeenLamp=true;}
+ return lampCardHTML()+(lit?trailCraftHTML():'')+'<details class="craft-fold" id="earlyCraftRecipes" '+(earlyCraftOpen?'open':'')+'><summary>'+L('기타 제작법','Other recipes')+'</summary>'+(!lit?'<p class="expdesc">'+L('첫 불빛을 밝히면 탐험 도구가 해금됩니다. 다른 제작법은 미리 확인할 수 있습니다.','Light the lantern to unlock trail gear. You can preview other recipes now.')+'</p>':'')+campCraftHTML()+'</details>';
+};
+$('panelBody').addEventListener('toggle',e=>{const id=e.target?.id;if(e.target?.dataset?.bagFold)bagFoldState[e.target.dataset.bagFold]=!!e.target.open;if(id==='bagQuests')bagFoldState.quests=!!e.target.open;if(id==='earlyCraftRecipes')earlyCraftOpen=!!e.target.open;if(id==='advancedGearRecipes')advancedGearOpen=!!e.target.open;if(id==='regionCraftRecipes')regionCraftOpen=!!e.target.open;if(id==='shadowGearRecipes')shadowGearOpen=!!e.target.open;},true);
 $('panelBody').addEventListener('click',e=>{const b=e.target.closest('[data-camp]');if(!b||b.disabled)return;if(b.dataset.camp==='lamp')buildCampLantern();if(b.dataset.camp==='gear')craftTrailGear(b.dataset.recipe);});
 const campAvailableActions=availableActions;
 availableActions=function(){const out=campAvailableActions();if(state==='play'&&!player.dead&&!exp.sailing&&atCamp()&&!campProgress().lamp)out.unshift(actionEntry('camp:lantern',L('작은 등불 세우기','Build camp lantern'),L('나무 4 · 돌 2 · 탐험 도구 제작 해금','4 wood · 2 stone · unlock trail recipes'),buildCampLantern,{disabled:!canAfford(LAMP_COST)}));return out;};
@@ -639,7 +644,7 @@ function gardenCardHTML(){
  }).join('')+'</div><p class="expdesc">'+L('새벽 기록 ','Dawns witnessed ')+p.nightMarks+' · '+L('밤에 1분 이상 살아남고 맞이한 새벽마다 반딧불이 남습니다.','Survive at least one minute of night; each dawn leaves a firefly at camp.')+'</p></section>';
 }
 const campBagHTML=bagHTML;
-bagHTML=function(){const old=campBagHTML();const start=old.indexOf('<div class="expcard"><h4>'+L('모닥불 정원','Camp garden'));const end=start<0?-1:old.indexOf('</div></div>',start);const clean=end<0?old:old.slice(0,start)+old.slice(end+12);return (!campProgress().lamp?lampCardHTML():'')+gardenCardHTML()+clean;};
+bagHTML=function(){for(const [key,ready] of Object.entries({garden:exp.seeds.length>0||exp.planted.length>0,log:exp.found.length>0,survival:survivalPhase().night})){if(ready&&!bagRevealSeen[key]){bagRevealSeen[key]=true;bagFoldState[key]=true;}}const old=campBagHTML();const start=old.indexOf('<div class="expcard"><h4>'+L('모닥불 정원','Camp garden'));const end=start<0?-1:old.indexOf('</div></div>',start);const clean=end<0?old:old.slice(0,start)+old.slice(end+12);return (!campProgress().lamp?lampCardHTML():'')+uiResources()+bagFoldStart('garden',L('캠프 정원','Camp garden'))+gardenCardHTML()+'</details>'+clean;};
 const campPlantSeed=plantSeed;
 plantSeed=function(s){const before=exp.planted.includes(s);const result=campPlantSeed(s);if(!before&&exp.planted.includes(s)){campProgress().gardenAge[s]=0;saveGame();}return result;};
 const campUpdate=update;
