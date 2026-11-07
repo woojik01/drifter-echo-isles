@@ -1,6 +1,6 @@
 'use strict';
 // Release 1.4: survival cycle, campfire defense, and night creatures.
-const RELEASE_VERSION='1.5.6';
+const RELEASE_VERSION='1.5.7';
 let orientationBlocked=false;
 let backgroundSuspended=false, distributionAdPaused=false, journeyClock=0, journeyTarget=null, guideWisp=null;
 const INTRO_ISLANDS=[

@@ -454,7 +454,7 @@ function tutTrackMove(dt,moving){
  if(k==='move'||k==='far'){
   if(!moving)return;
   const d=Math.hypot(player.x-tut.lastX,player.y-tut.lastY);
-  if(d>2){tut.walked+=d;tut.lastX=player.x;tut.lastY=player.y}
+  if(d>0.1){tut.walked+=d;tut.lastX=player.x;tut.lastY=player.y}
   if(tut.walked>60)tutStepDone(k)}
  else if(k==='run'){
   if(player.stam>tut.stamPeak)tut.stamPeak=player.stam;
@@ -1387,7 +1387,6 @@ function update(dt){
  if(!starActive){starT-=dt;if(starT<=0)spawnStar()}
  const mv=dlg||player.dead?{x:0,y:0}:getMove();
  const moving=mv.x!==0||mv.y!==0;
- tutTrackMove(dt,moving);
  updateFishing(dt,moving);
  if(player.exhausted&&player.stam>=25)player.exhausted=false;
  let spd=stats.speed;
@@ -1411,6 +1410,7 @@ function update(dt){
   if(Math.abs(mv.x)>0.1)player.face=mv.x>0?1:-1;
   if(wading){if(Math.random()<dt*10)particles.push({x:player.x+rand(-5,5),y:player.y+2,vx:rand(-8,8),vy:rand(-12,-3),g:40,life:.4,max:.4,size:1,color:'#cdeef5'})}
   else if(Math.random()<dt*4)particles.push({x:player.x+rand(-5,5),y:player.y+3,vx:rand(-12,12),vy:rand(-24,-6),g:60,life:.5,max:.5,size:1,color:'#6f9a4d'})}
+ tutTrackMove(dt,moving);
  if(attackHeld)tryAttack();
  player.atkCool=Math.max(0,player.atkCool-dt);
  attackT=Math.max(0,attackT-dt);
