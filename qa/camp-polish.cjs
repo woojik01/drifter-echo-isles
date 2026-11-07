@@ -2,9 +2,20 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const makeGame=require('./harness.cjs');
 (async()=>{
- const g=await makeGame();const{run,elements,storage}=g;
+ const g=await makeGame();const{run,elements,storage,listeners}=g;
  function test(name,fn){fn();console.log('PASS',name);}
  function fresh(){run('freshStart();skipTutorial();closeInv();closeActionMenu();backgroundSuspended=false;player.dead=false;');}
+ test('short keyboard taps count actual movement and finish the first tutorial step',()=>{
+  run('DrifterPlatform.storage.removeItem(TUT_KEY);freshStart();');
+  assert.equal(run('tutCur()'),'move');
+  const send=(type,code)=>{for(const handler of listeners[type]||[])handler({code,repeat:false,preventDefault(){}})};
+  for(let i=0;i<54;i++){send('keydown','KeyD');run('update(0.016)');send('keyup','KeyD');}
+  const moved=run('player.x-268'),tracked=run('tut.walked');
+  assert.ok(moved>60,'the keyboard taps must move farther than the tutorial threshold');
+  assert.equal(tracked,moved,'tutorial progress must include every actual position change');
+  assert.equal(run('tutCur()'),'gather');
+  assert.doesNotMatch(elements.get('journeyText').textContent,/WASD|방향키|이동하세요/);
+ });
  test('a hit does not finish gathering; drops at the old magnet dead zone reach the bag',()=>{
   fresh();run(`tutOpenIntro();tutStepDone('move');nodeCache=activeNodes();globalThis.testNode=nodeCache.find(n=>n.type==='tree');damageNode(testNode,1);`);
   assert.equal(run('tutCur()'),'gather');
@@ -50,6 +61,6 @@ const makeGame=require('./harness.cjs');
  });
  test('both languages render every new interface and remain valid at small canvas sizes',()=>{
   for(const[w,h]of[[821,462],[800,450],[1280,720]])for(const lang of['ko','en']){g.env.innerWidth=w;g.env.innerHeight=h;run(`LANG='${lang}';applyLang();resize();render();openInv('craft');renderPanel();closeInv();`);assert.equal(run('orientationBlocked'),false);}
-  const html=fs.readFileSync('game-assets/index.html','utf8');const ids=[...html.split('<script>')[0].matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(ids.length,new Set(ids).size);assert.equal(run('RELEASE_VERSION'),'1.5.6');
+  const html=fs.readFileSync('game-assets/index.html','utf8');const ids=[...html.split('<script>')[0].matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(ids.length,new Set(ids).size);assert.equal(run('RELEASE_VERSION'),'1.5.7');
  });
 })().catch(e=>{console.error(e);process.exitCode=1;});
