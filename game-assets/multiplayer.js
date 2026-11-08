@@ -107,9 +107,14 @@
     let response=null,health=null;
     const path=stage==='workers'?'/api/ready'+(Number.isInteger(workerIndex)&&workerIndex>0?'?worker='+workerIndex:''):'/health';
     try{({response,health}=await connectionFetch(`${endpoint}${path}`,run,Math.min(6000,deadline-Date.now())))}catch{}
+    if(stage==='workers'&&Number.isFinite(health?.workers)&&Number.isFinite(health?.readyWorkers)){
+     const total=Math.max(0,Math.floor(health.workers)),ready=Math.min(total,Math.max(0,Math.floor(health.readyWorkers)));
+     if(Number.isInteger(workerIndex)&&workerIndex>0)copy.textContent=LANG==='ko'? `요청한 게임 서버 응답 대기 중 · ${elapsed}/180초` : `Waiting for requested game server · ${elapsed}/180s`;
+     else copy.textContent=LANG==='ko'? `게임 서버 준비 중 (${ready}/${total}대 · ${elapsed}/180초)` : `Game servers ready: ${ready}/${total} · ${elapsed}/180s`;
+    }
     if(run.cancelled)throw new Error(LANG==='ko'?'연결을 취소했습니다.':'Connection cancelled.');
     if(response?.ok&&health?.ok){
-     if(stage==='gateway'&&health.service==='drifter-gateway'){stage='workers';attempt=0;continue}
+     if(stage==='gateway'&&health.service==='drifter-gateway'){stage='workers';title.textContent=LANG==='ko'?'게임 서버 준비 중…':'Preparing game servers…';attempt=0;continue}
      if(stage==='gateway'||health.ready===true){if(!window.Colyseus?.Client)throw new Error(LANG==='ko'?'Colyseus SDK를 불러오지 못했습니다.':'Could not load the Colyseus SDK.');if(!client)client=makeCoopClient(endpoint);return endpoint}
     }
     if(stage==='workers'&&Array.isArray(health?.wakeUrls)){

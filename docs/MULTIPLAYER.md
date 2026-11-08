@@ -26,3 +26,13 @@ npm test
 공통 설정으로 `PORT`, `DRIFTER_MAX_PLAYERS`, `DRIFTER_ALLOWED_ORIGINS`를 사용할 수 있습니다. 인증 비밀값과 연결 문자열은 환경변수로 관리하고 저장소에 추가하지 않습니다.
 
 기존 운영 서비스를 이 저장소로 연결할 때는 서비스별 역할, 환경변수, 빌드·시작 명령과 서버 주소를 유지하세요. `render.scale.yaml`은 과거 유료 멀티노드 Blueprint 예시이며 기존 운영 서비스의 현재 설정과 동일하다고 보장하지 않습니다.
+
+## 브라우저 출처와 연결 상태
+
+`DRIFTER_ALLOWED_ORIGINS`는 URL 경로와 끝의 슬래시를 제외한 브라우저 출처를 쉼표로 구분해 받습니다. 배포 예시는 GitHub Pages와 운영·개발 게임 사이트를 허용합니다. 서버 기본값에는 저장소의 Python 미리보기 명령에 맞춰 `http://localhost:8000`, `http://127.0.0.1:8000`도 포함됩니다. 새 배포 플랫폼은 브라우저가 보내는 출처를 확인한 뒤 추가하세요.
+
+파티 연결 화면은 접속 서버와 게임 서버 준비 단계를 구분합니다. 게이트웨이가 게임 서버를 확인하는 동안 준비된 워커 수와 경과 시간을 표시하며, 특정 워커에 다시 연결할 때는 별도 상태를 보여줍니다.
+
+## Render health checks
+
+Set `healthCheckPath: /health` on the gateway and each game worker. The gateway's `/health` also checks its routing store, while `/api/ready` is the player connection flow and can report workers as still starting. The Blueprint files are deployment examples; manually configured live services must be updated in Render separately.
