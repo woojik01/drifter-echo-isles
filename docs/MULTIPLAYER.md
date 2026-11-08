@@ -33,6 +33,6 @@ npm test
 
 파티 연결 화면은 접속 서버와 게임 서버 준비 단계를 구분합니다. 게이트웨이가 게임 서버를 확인하는 동안 준비된 워커 수와 경과 시간을 표시하며, 특정 워커에 다시 연결할 때는 별도 상태를 보여줍니다.
 
-## Render health checks
+## Render 헬스 체크
 
-Set `healthCheckPath: /health` on the gateway and each game worker. The gateway's `/health` also checks its routing store, while `/api/ready` is the player connection flow and can report workers as still starting. The Blueprint files are deployment examples; manually configured live services must be updated in Render separately.
+게이트웨이와 각 게임 워커의 `healthCheckPath`는 `/health`로 설정합니다. 게이트웨이의 `/health`는 라우팅 저장소도 확인합니다. 플레이어 연결용 `/api/ready`는 워커가 준비되는 중에 대기 상태를 반환할 수 있으므로 Render 헬스 체크 경로로 사용하지 않습니다. Blueprint 파일은 배포 예시이며, 별도로 설정한 운영 서비스는 Render에서 직접 갱신해야 합니다.
