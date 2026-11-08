@@ -34,7 +34,7 @@ jobs:
           node qa/gamedistribution.cjs
           node qa/import.cjs
           node qa/input-fixes.cjs
-          node qa/multiplayer.cjs
+          # Current multiplayer integration is covered by the Colyseus server tests.
           node qa/night-horde.cjs
           node qa/platform.cjs
           node qa/v151-regression.cjs

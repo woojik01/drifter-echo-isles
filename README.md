@@ -42,6 +42,6 @@ node qa/check.cjs
 
 ## 자동 점검과 배포 설정
 
-GitHub Actions는 main 브랜치로 들어오는 푸시와 PR에서 Worker 빌드·클라이언트 회귀 QA, Colyseus 서버 빌드·테스트, Gitleaks 비밀정보 검사를 실행합니다. 실제 서버에 방을 만드는 수동 파티 점검과 제출용 이미지 생성은 CI에서 제외합니다.
+GitHub Actions는 main 브랜치로 들어오는 푸시와 PR에서 Worker 빌드·클라이언트 회귀 QA, Colyseus 서버 빌드·테스트, Gitleaks 비밀정보 검사를 실행합니다. 현재 Colyseus 통합 테스트가 서버 방 생성과 참가를 검증합니다. 구형 Supabase QA, 실제 서버에 방을 만드는 수동 점검, 제출용 이미지 생성은 CI에서 제외합니다.
 
 `DRIFTER_ALLOWED_ORIGINS`에는 브라우저 출처를 쉼표로 구분해 정확히 지정합니다. Render 설정 예시와 서버 기본값은 GitHub Pages, 운영 사이트, 개발 사이트를 허용하고, 로컬 Python 미리보기에는 8000번 포트를 허용합니다. 새 배포 플랫폼을 추가할 때는 브라우저가 보내는 `Origin`을 확인한 뒤 해당 출처만 추가하세요. `*`는 사용하지 않습니다.
