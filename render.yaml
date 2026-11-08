@@ -13,4 +13,4 @@ services:
       - key: DRIFTER_MAX_PLAYERS
         value: 4
       - key: DRIFTER_ALLOWED_ORIGINS
-        value: "*"
+        value: "https://woojik01.github.io,https://drifter-echo-isles.perkyspice3.chatgpt.site,https://drifter-development.perkyspice3.chatgpt.site"

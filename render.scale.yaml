@@ -18,7 +18,7 @@ services:
       - key: DRIFTER_SERVICE_ROLE
         value: gateway
       - key: DRIFTER_ALLOWED_ORIGINS
-        value: "*"
+        value: "https://woojik01.github.io,https://drifter-echo-isles.perkyspice3.chatgpt.site,https://drifter-development.perkyspice3.chatgpt.site"
       - fromGroup: drifter-cluster-secrets
       - key: REDIS_URL
         fromService:
@@ -56,7 +56,7 @@ services:
       - key: DRIFTER_MAX_PLAYERS
         value: 4
       - key: DRIFTER_ALLOWED_ORIGINS
-        value: "*"
+        value: "https://woojik01.github.io,https://drifter-echo-isles.perkyspice3.chatgpt.site,https://drifter-development.perkyspice3.chatgpt.site"
       - fromGroup: drifter-cluster-secrets
       - key: DRIFTER_PUBLIC_ADDRESS
         fromService:
@@ -89,7 +89,7 @@ services:
       - key: DRIFTER_MAX_PLAYERS
         value: 4
       - key: DRIFTER_ALLOWED_ORIGINS
-        value: "*"
+        value: "https://woojik01.github.io,https://drifter-echo-isles.perkyspice3.chatgpt.site,https://drifter-development.perkyspice3.chatgpt.site"
       - fromGroup: drifter-cluster-secrets
       - key: DRIFTER_PUBLIC_ADDRESS
         fromService:

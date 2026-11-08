@@ -64,8 +64,19 @@ function isInternalRequest(req: Request) {
   return safeEqual(expected, supplied);
 }
 
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://woojik01.github.io",
+  "https://drifter-echo-isles.perkyspice3.chatgpt.site",
+  "https://drifter-development.perkyspice3.chatgpt.site",
+  "http://localhost:8000",
+  "http://127.0.0.1:8000",
+];
+
 function corsOrigins() {
-  return process.env.DRIFTER_ALLOWED_ORIGINS?.split(",").map(value => value.trim()).filter(Boolean) ?? ["*"];
+  const configured = process.env.DRIFTER_ALLOWED_ORIGINS;
+  return configured === undefined
+    ? DEFAULT_ALLOWED_ORIGINS
+    : configured.split(",").map(value => value.trim()).filter(Boolean);
 }
 
 function configureCommon(app: Application) {
