@@ -8,6 +8,7 @@
      실행되고 이후엔 블록 자체에 들어가지 못했음 → 영원히
      완료 불가. '최고치 대비 닳은 양' 방식으로 교체해 매 프레임
      평가. 막대가 20% 정도 닳으면(달리기 약 1~1.5초) 통과.
+   - 첫 실제 이동에 즉시 확인 문구를 보여주되, 기존 60px 이동 판정은 유지함.
    - 추가: 채집(4단계)도 완료 처리가 빠져 있어 함께 수정
      (tut.gathered를 설정만 하고 소비하는 곳이 없었음)
    ================================================================ */
@@ -108,6 +109,7 @@ ko:{
  tutDone3:'안개 너머는 스스로 걸어서 확인해. 가끔은 여기저기 흘러다니는 우리 같은 떠돌이에게 말을 걸어 봐.',
  tutDoneHint:'도움이 필요하면 ? 버튼이나 T 키로 이 수업을 다시 들을 수 있다.',
  tutGo:'걷기 시작',
+ tutMoveStarted:'좋아, 움직이고 있어. 조금만 더 걸어 보자.',
  tutStepsTitle:'첫걸음 수업',
  tutMsgs:{
   move:{d:'WASD 또는 방향키로 걸어 보자. 조금만 걸으면 돼.',m:'화면을 아무 곳이나 끌어서 걸어 보자. 조금만 걸으면 돼.'},
@@ -204,6 +206,7 @@ en:{
  tutDone3:'See past the mist for yourself. And now and then, stop and talk to us drifters drifting by.',
  tutDoneHint:'You can retake this lesson anytime with the TUTORIAL button or the T key.',
  tutGo:'Start walking',
+ tutMoveStarted:'Good, you are moving. Keep going a little further.',
  tutStepsTitle:'FIRST STEPS',
  tutMsgs:{
   move:{d:'Walk with WASD or the arrow keys. Just a few steps will do.',m:'Drag anywhere on the screen to walk. Just a few steps will do.'},
@@ -412,7 +415,7 @@ const tut={
  active:false, idx:0,
  walked:0, lastX:0, lastY:0,
  stamPeak:0,          /* 달리기 단계: 스테미너 최고치(회복 포함 추적) */
- gathered:false, equippedCount:0,
+ gathered:false, equippedCount:0, moveConfirmed:false,
 };
 function tutCur(){return TUT_STEPS[tut.idx]||null}
 function tutStepDone(key){
@@ -438,6 +441,7 @@ function tutShowStep(){
  el.classList.add('show');
  tutRenderSteps();
  if(k==='move'||k==='far'){tut.walked=0;tut.lastX=player.x;tut.lastY=player.y}
+ if(k==='move')tut.moveConfirmed=false;
  if(k==='run')tut.stamPeak=player.stam;
  if(k==='gather')tut.gathered=false;
  if(k==='pickup'){} /* 자원/장비 감시는 update에서 */
@@ -454,7 +458,10 @@ function tutTrackMove(dt,moving){
  if(k==='move'||k==='far'){
   if(!moving)return;
   const d=Math.hypot(player.x-tut.lastX,player.y-tut.lastY);
-  if(d>0.1){tut.walked+=d;tut.lastX=player.x;tut.lastY=player.y}
+  if(d>0.1){
+   tut.walked+=d;tut.lastX=player.x;tut.lastY=player.y;
+   if(k==='move'&&!tut.moveConfirmed){tut.moveConfirmed=true;$('tutMsg').textContent=t('tutMoveStarted')}
+  }
   if(tut.walked>60)tutStepDone(k)}
  else if(k==='run'){
   if(player.stam>tut.stamPeak)tut.stamPeak=player.stam;
