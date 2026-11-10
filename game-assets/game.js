@@ -8,6 +8,7 @@
      실행되고 이후엔 블록 자체에 들어가지 못했음 → 영원히
      완료 불가. '최고치 대비 닳은 양' 방식으로 교체해 매 프레임
      평가. 막대가 20% 정도 닳으면(달리기 약 1~1.5초) 통과.
+   - 이동/방향 전환 완료 거리를 60px에서 32px(두 타일)로 줄여 첫 조작 피드백을 빠르게 함.
    - 추가: 채집(4단계)도 완료 처리가 빠져 있어 함께 수정
      (tut.gathered를 설정만 하고 소비하는 곳이 없었음)
    ================================================================ */
@@ -455,7 +456,7 @@ function tutTrackMove(dt,moving){
   if(!moving)return;
   const d=Math.hypot(player.x-tut.lastX,player.y-tut.lastY);
   if(d>0.1){tut.walked+=d;tut.lastX=player.x;tut.lastY=player.y}
-  if(tut.walked>60)tutStepDone(k)}
+  if(tut.walked>=TILE*2)tutStepDone(k)}
  else if(k==='run'){
   if(player.stam>tut.stamPeak)tut.stamPeak=player.stam;
   const need=clamp(stats.maxStam*0.2,12,30);
