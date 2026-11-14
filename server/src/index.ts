@@ -79,6 +79,21 @@ function corsOrigins() {
     : configured.split(",").map(value => value.trim()).filter(Boolean);
 }
 
+function configureColyseusCors() {
+  const origins = corsOrigins();
+  // Colyseus handles OPTIONS and its own routes before the Express middleware.
+  // Its default reflects every Origin, so apply the same allowlist there too.
+  delete (matchMaker.controller.DEFAULT_CORS_HEADERS as Record<string, string>)["Access-Control-Allow-Origin"];
+  matchMaker.controller.DEFAULT_CORS_HEADERS["Access-Control-Max-Age"] = "0";
+  matchMaker.controller.getCorsHeaders = headers => {
+    const origin = headers?.get("origin") ?? "";
+    const result: Record<string, string> = { Vary: "Origin" };
+    if (origins.includes("*")) result["Access-Control-Allow-Origin"] = "*";
+    else if (origins.includes(origin)) result["Access-Control-Allow-Origin"] = origin;
+    return result;
+  };
+}
+
 function configureCommon(app: Application) {
   app.set("trust proxy", 1);
   const configuredOrigins = corsOrigins();
@@ -574,6 +589,7 @@ async function start() {
   if (role === "worker" && !publicAddress()) throw new Error("DRIFTER_PUBLIC_ADDRESS or RENDER_EXTERNAL_HOSTNAME is required in worker mode.");
   if (role === "worker" && (!Number.isInteger(workerIndex) || workerIndex < 1)) throw new Error("DRIFTER_WORKER_INDEX must be a positive integer.");
 
+  configureColyseusCors();
   const drifterRoom = defineRoom(DrifterRoom).filterBy(["roomCode"]);
   if (role === "single") {
     drifterRoom.on("dispose", disposed => {

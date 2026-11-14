@@ -20,6 +20,8 @@ jobs:
         with:
           node-version: 22.16.0
           package-manager-cache: false
+      - name: Check committed script cache keys for GitHub Pages
+        run: node scripts/version-assets.mjs --check
       - name: Build Worker artifact
         run: bash scripts/build.sh
       - name: Validate Worker artifact
