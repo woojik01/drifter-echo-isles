@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+node scripts/version-assets.mjs
 node scripts/embed-assets.mjs
 rm -rf dist
 mkdir -p dist/server

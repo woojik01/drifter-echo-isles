@@ -6,6 +6,51 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), { status
 const config = () => json({}, 404);
 const source = process.env.DRIFTER_CLIENT_TEST_SOURCE;
 
+test("opening and closing the party panel repeatedly does not reserve or join a room", async () => {
+  const requests = [];
+  const client = await gameClient({ source, Client: class {}, fetch: async url => {
+    requests.push(String(url));
+    throw new Error(`Unexpected request ${url}`);
+  }});
+  try {
+    for (let i = 0; i < 3; i++) {
+      await client.api.open();
+      assert.equal(client.api.isPanelOpen(), true);
+      assert.equal(client.api.currentRoom(), null);
+      client.api.close();
+      assert.equal(client.api.isPanelOpen(), false);
+    }
+    assert.deepEqual(requests, []);
+    assert.equal(client.api.isActive(), false);
+  } finally { client.dispose(); }
+});
+
+test("a stale saved party only attempts reconnect and never creates a replacement room", async () => {
+  let reconnects = 0;
+  const endpoint = "https://saved-node.example.test";
+  const requests = [];
+  const client = await gameClient({ source, Client: class {
+    async reconnect() { reconnects++; throw new Error("Reservation expired"); }
+  }, fetch: async (url, options) => {
+    requests.push(String(url));
+    assert.equal(options?.method ?? "GET", "GET");
+    assert.equal(String(url), endpoint + "/health");
+    return json({ ok: true, service: "drifter-node" });
+  }});
+  client.storage.set("drifter_colyseus_active_v120", JSON.stringify({ endpoint, token: "stale-token", expiresAt: Date.now() + 10000 }));
+  try {
+    await client.api.open();
+    client.api.close();
+    await client.api.open();
+    client.api.close();
+    assert.equal(reconnects, 1);
+    assert.deepEqual(requests, [endpoint + "/health"]);
+    assert.equal(client.api.currentRoom(), null);
+    assert.equal(client.api.isActive(), false);
+    assert.equal(client.storage.has("drifter_colyseus_active_v120"), false);
+  } finally { client.dispose(); }
+});
+
 test("game create waits for game nodes after the gateway is awake", async () => {
   let probes = 0, reservations = 0, connections = 0;
   const client = await gameClient({ source, Client: class {
